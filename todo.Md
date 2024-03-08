@@ -9,7 +9,7 @@
    1. BART function
    2. rBART function
    3. COXPH function
-   4. RSF function
+   4. RSF function - not doing RSF
 7. write evaluation functions
    1. GENERAL
    2. RMSE
