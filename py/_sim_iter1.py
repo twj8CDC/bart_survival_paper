@@ -224,7 +224,7 @@ def iter_simulation_2s(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict, s
     ax[0].step(odict["uniq_t"], odict["pb_sv"][0][1][1,:], color = "red", where="mid", alpha=0.5, linestyle="dashed")
     ax[1].step(odict["uniq_t"], odict["pb_sv"][1][1][0,:], color = "red", where="mid", alpha=0.5, linestyle="dashed")
     ax[1].step(odict["uniq_t"], odict["pb_sv"][1][1][1,:], color = "red", where="mid", alpha=0.5, linestyle="dashed")
-    ax[0].step(odict["uniq_t"], odict["pb_sv"][0][2][0,:], color = "green", where="mid", alpha=0.5, linestyle="dashed", label="r_ci")
+    ax[0].step(odict["uniq_t"], odict["pb_sv"][0][2][0,:], color = "green", where="mid", alpha=0.5, linestyle="dashed", label="p_hdi")
     ax[0].step(odict["uniq_t"], odict["pb_sv"][0][2][1,:], color = "green", where="mid", alpha=0.5, linestyle="dashed")
     ax[1].step(odict["uniq_t"], odict["pb_sv"][1][2][0,:], color = "green", where="mid", alpha=0.5, linestyle="dashed")
     ax[1].step(odict["uniq_t"], odict["pb_sv"][1][2][1,:], color = "green", where="mid", alpha=0.5, linestyle="dashed")

@@ -1,5 +1,8 @@
 import sys
 sys.path.append("../py/")
+import os
+
+print(os.getcwd())
 
 import numpy as np
 import subprocess

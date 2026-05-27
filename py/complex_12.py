@@ -20,7 +20,7 @@ import time
 def main():
     ##########################
     # set up 
-    ml.set_tracking_uri("../mlruns")
+    ml.set_tracking_uri("../mlruns2")
     exp_name = prm.EXP_NAME
     if ml.get_experiment_by_name(exp_name) == None:
         exp_id = ml.create_experiment(exp_name)

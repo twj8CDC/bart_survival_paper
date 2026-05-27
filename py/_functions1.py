@@ -186,9 +186,11 @@ def get_hdi_ci_1(pb_sv):
     return hdi_lh, ci_lh
     
 def get_py_bart_surv(x_mat, event_dict, model_dict, sampler_dict):
-    y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
-    trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
-    post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
+    # y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
+    # trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
+    trn = sb.get_surv_pre_train(y_time = event_dict["t_event"], y_status=event_dict["status"], x = x_mat, weight=None)
+    # post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
+    post_test = sb.get_posterior_test(y_status=event_dict["status"], y_time=event_dict["t_event"], x=x_mat)
     small_post_x = np.unique(post_test["post_x"][:,0]).reshape(-1,1)
     small_coords = np.hstack([np.repeat(0, small_post_x.shape[0]), np.repeat(1, small_post_x.shape[0]), ])
     small_post_x = np.vstack([small_post_x, small_post_x])
@@ -303,14 +305,18 @@ def get_hdi_ci_2(pb_sv):
     return hdi_lh, ci_lh
 
 def get_py_bart_surv2(x_mat, event_dict, model_dict, sampler_dict):
-    y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
-    trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
-    post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
+    trn = sb.get_surv_pre_train(y_time = event_dict["t_event"], y_status=event_dict["status"], x = x_mat, weight=None)
+    post_test = sb.get_posterior_test(y_status=event_dict["status"], y_time=event_dict["t_event"], x=x_mat)
+    # y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
+    # trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
+    # post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
     small_post_x = np.unique(post_test["post_x"][:,0]).reshape(-1,1)
     xs = np.hstack([np.repeat(0, small_post_x.shape[0]), np.repeat(1, small_post_x.shape[0])])
     small_coords = np.hstack([np.repeat(0, small_post_x.shape[0]), np.repeat(1, small_post_x.shape[0]), ])
     small_post_x = np.vstack([small_post_x, small_post_x])
     small_post_x = np.hstack([small_post_x, xs.reshape(-1,1)])
+    # print(small_post_x)
+    # print(small_coords)
 
     # return trn, post_test, small_post_x, small_coords
     BSM = sb.BartSurvModel(model_config=model_dict, sampler_config=sampler_dict)
@@ -318,9 +324,7 @@ def get_py_bart_surv2(x_mat, event_dict, model_dict, sampler_dict):
     BSM.fit(y=trn["y"], X=trn["x"], weights=trn["w"], coords = trn["coord"], random_seed=99)
     post1 = BSM.sample_posterior_predictive(X_pred=small_post_x, coords=small_coords)
     sv_prob = sb.get_sv_prob(post1)
-    # print(sv_prob[""].shape)
-    # print(sv_prob)
-    # quit()
+
     sv_1 = pb_sb_sub(sv_prob, 0)
     sv_2 = pb_sb_sub(sv_prob, 1)
     uniq_t = BSM.uniq_times
@@ -387,6 +391,7 @@ def sim_2s(seed, n, scenario, SPLIT_RULES, model_dict, sampler_dict):
     k_sv1 = twopop_kpm(ed1, uniq_t)
     k_sv2 = twopop_kpm(ed2, uniq_t)
     
+    # print(x_mat)
     # fit bart_py
     pb_sv = get_py_bart_surv2(x_mat=x_mat, event_dict=event_dict, model_dict=model_dict, sampler_dict=sampler_dict)
 
@@ -408,9 +413,11 @@ def sim_2s(seed, n, scenario, SPLIT_RULES, model_dict, sampler_dict):
 # complex 1,2
 #############################################################
 def get_py_bart_surv3(x_mat, event_dict, model_dict, sampler_dict):
-    y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
-    trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
-    post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
+    # y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
+    # trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
+    # post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
+    trn = sb.get_surv_pre_train(y_time = event_dict["t_event"], y_status=event_dict["status"], x = x_mat, weight=None)
+    post_test = sb.get_posterior_test(y_status=event_dict["status"], y_time=event_dict["t_event"], x=x_mat)
 
     # return trn, post_test, small_post_x, small_coords
     BSM = sb.BartSurvModel(model_config=model_dict, sampler_config=sampler_dict)
@@ -507,9 +514,11 @@ def sim_3s(seed, n, scenario_, SPLIT_RULES, model_dict, sampler_dict):
 # Complex 3
 #############################################################
 def get_py_bart_surv3_2(x_mat, event_dict, model_dict, sampler_dict, test):
-    y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
-    trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
-    post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
+    trn = sb.get_surv_pre_train(y_time = event_dict["t_event"], y_status=event_dict["status"], x = x_mat, weight=None)
+    post_test = sb.get_posterior_test(y_status=event_dict["status"], y_time=event_dict["t_event"], x=x_mat)
+    # y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
+    # trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
+    # post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
 
     # return trn, post_test, small_post_x, small_coords
     BSM = sb.BartSurvModel(model_config=model_dict, sampler_config=sampler_dict)
@@ -520,7 +529,8 @@ def get_py_bart_surv3_2(x_mat, event_dict, model_dict, sampler_dict, test):
     uniq_t = BSM.uniq_times
 
     # do test
-    post_test_test = sb.get_posterior_test(y_sk = y_sk, x_test = test)
+    # post_test_test = sb.get_posterior_test(y_sk = , x_test = test) # old
+    post_test_test = sb.get_posterior_test(y_status=event_dict["status"], y_time=event_dict["t_event"], x=test)
     post_test = BSM.sample_posterior_predictive(X_pred=post_test_test["post_x"], coords=post_test_test["coords"])
     sv_prob_test = sb.get_sv_prob(post_test)
 
@@ -595,8 +605,9 @@ def sim_3_2s(seed, n, scenario_, SPLIT_RULES, model_dict, sampler_dict):
             break
     
     # assert False
-    # get the test set, this will be a new set since rng is reused
-    scenario_t, x_mat_t, event_dict_t, sv_true_t, sv_scale_true_t = get_sim(rng, n, **scenario_)
+    # get the test set, this will be a new set since rng is reused 
+    scenario_t, x_mat_t, event_dict_t, sv_true_t, sv_scale_true_t = get_sim(rng, 400, **scenario_) # try keepin n to 400 in the test set
+    # scenario_t, x_mat_t, event_dict_t, sv_true_t, sv_scale_true_t = get_sim(rng, n, **scenario_) #old 
 
     # return x_mat, x_mat2
     # get the unique x_test
@@ -626,9 +637,11 @@ def sim_3_2s(seed, n, scenario_, SPLIT_RULES, model_dict, sampler_dict):
 
 ################################### paramsim
 def get_py_bart_prm_1(x_mat, event_dict, model_dict, sampler_dict, tst):
-    y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
-    trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
-    post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
+    trn = sb.get_surv_pre_train(y_time = event_dict["t_event"], y_status=event_dict["status"], x = x_mat, weight=None)
+    post_test = sb.get_posterior_test(y_status=event_dict["status"], y_time=event_dict["t_event"], x=x_mat)
+    # y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
+    # trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
+    # post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
 
     # return trn, post_test, small_post_x, small_coords
     BSM = sb.BartSurvModel(model_config=model_dict, sampler_config=sampler_dict)

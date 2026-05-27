@@ -1,6 +1,6 @@
-EXP_NAME = "cmplx"
+EXP_NAME = "cmplx_new"
 RUN_NAME = "cmplx_1_400_200_2_test"
-RUN_NAME_cmplx3 = "cmplx_3_400_2"
+RUN_NAME_cmplx3 = "cmplx_3_400"
 
 ###########################
 # ITERATIONS
@@ -82,12 +82,24 @@ SPLIT_RULES3 =  [
 MODEL_DICT3 = {"trees": 100,
 	"split_rules": SPLIT_RULES3
 }
-SAMPLER_DICT3 = {
-	"draws": 500,
-	"tune": 100,
-	"cores": 4,
-	"chains": 4,
-	"compute_convergence_checks": False
+# SAMPLER_DICT3 = { # old
+# 	"draws": 500,
+# 	"tune": 100,
+# 	"cores": 4,
+# 	"chains": 4,
+# 	"compute_convergence_checks": False
+# }
+
+SAMPLER_DICT3 = { # new
+	"draws": 300,
+	"tune": 50,
+	"cores": 12,
+	"chains": 12,
+	"compute_convergence_checks": False,
+	"pgbart":{
+                "num_particles":5,
+                "batch":(.1,.1)
+            }
 }
 
 
