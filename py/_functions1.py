@@ -3,7 +3,7 @@ import numpy as np
 import lifelines as ll
 import sksurv as sks
 import matplotlib.pyplot as plt
-from bart_survival import surv_bart as sb
+import bart_surv_adj as sb
 
 
 import lifelines as ll
@@ -12,7 +12,7 @@ import subprocess
 import threading as th
 import multiprocessing as mp
 import sys
-sys.path.append("../src/")
+
 import sim_adj as sm
 import arviz as az
 # import brt_adj as sb
@@ -178,12 +178,12 @@ def get_hdi_ci_1(pb_sv):
     s1 = pb_sv["sv"].shape[0]
     s2 = pb_sv["sv"].shape[1]
     s3 = pb_sv["sv"].shape[2]
-    hdi_pre = az.convert_to_dataset(pb_sv["sv"].reshape(1,s1,s2,s3))
+    # hdi_pre = az.convert_to_dataset(pb_sv["sv"].reshape(1,s1,s2,s3))
     #low-high
-    hdi_lh = az.hdi(hdi_pre, hdi_prob=.95).x.values
+    # hdi_lh = az.hdi(hdi_pre, hdi_prob=.95).x.values
     # low-high
     ci_lh = np.quantile(pb_sv["sv"], [0.025, 0.975], 0)
-    return hdi_lh, ci_lh
+    return ci_lh, ci_lh
     
 def get_py_bart_surv(x_mat, event_dict, model_dict, sampler_dict):
     # y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
@@ -200,10 +200,13 @@ def get_py_bart_surv(x_mat, event_dict, model_dict, sampler_dict):
     BSM = sb.BartSurvModel(model_config=model_dict, sampler_config=sampler_dict)
 
     # fit with just the time column
+    print("here")
+    print(trn["x"].shape)
     BSM.fit(y=trn["y"], X=trn["x"][:,0].reshape(-1,1), weights=trn["w"], coords = trn["coord"], random_seed=99)
     
     post1 = BSM.sample_posterior_predictive(X_pred=small_post_x, coords=small_coords)
-    sv_prob = sb.get_sv_prob(post1)
+    print(post1)
+    sv_prob = sb.get_sv_prob(post1, small_coords)
     sv_m = sv_prob["sv"].mean(1).mean(0)
     uniq_t = BSM.uniq_times
     sv_q = np.quantile(sv_prob["sv"].mean(1), [0.025,0.975], axis=0)
@@ -299,7 +302,7 @@ def get_hdi_ci_2(pb_sv):
     s3 = pb_sv["sv"].shape[2]
     hdi_pre = az.convert_to_dataset(pb_sv["sv"].reshape(1,s1,s2,s3))
     #low-high
-    hdi_lh = az.hdi(hdi_pre, hdi_prob=.95).x.values
+    hdi_lh = az.hdi(hdi_pre, prob=.95).x.values
     # low-high
     ci_lh = np.quantile(pb_sv["sv"], [0.025, 0.975], 0)
     return hdi_lh, ci_lh
@@ -323,7 +326,7 @@ def get_py_bart_surv2(x_mat, event_dict, model_dict, sampler_dict):
     # fit with just the time column
     BSM.fit(y=trn["y"], X=trn["x"], weights=trn["w"], coords = trn["coord"], random_seed=99)
     post1 = BSM.sample_posterior_predictive(X_pred=small_post_x, coords=small_coords)
-    sv_prob = sb.get_sv_prob(post1)
+    sv_prob = sb.get_sv_prob(post1, small_coords)
 
     sv_1 = pb_sb_sub(sv_prob, 0)
     sv_2 = pb_sb_sub(sv_prob, 1)
@@ -842,12 +845,12 @@ def apply_metrics1(true0, est0, est_ci0, est_hdi0=None):
     else:
         cov1 = coverage(true0, est_ci0, calc=True)
         ivl1 = iv_length(est_ci0)
-        cov2 = coverage(true0, est_hdi0, calc=True)
+        # cov2 = coverage(true0, est_hdi0, calc=True) # quick fix to get rid of HDI
         ivl2 = iv_length(est_ci0)
         return {"rmse":rmse0, 
                 "bias":bias0, 
                 "cov_ci":cov1, 
-                "cov_hdi":cov2, 
+                "cov_hdi":cov1, 
                 "ivl_ci":ivl1,
                 "iv_hdi":ivl2
                 }

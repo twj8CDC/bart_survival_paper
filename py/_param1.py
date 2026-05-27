@@ -5,7 +5,7 @@ RUN_NAME = "small_particles_1000iter"
 
 ###########################
 # ITERATIONS
-ITERS = 10
+ITERS = 2
 SEED_ADDL=13
 # N  = [200, 400]
 N  = [400]
@@ -15,7 +15,7 @@ N  = [400]
 SPLIT_RULES1 =  [
 	"pmb.ContinuousSplitRule()", 
 ]
-MODEL_DICT1 = {"trees": 100,
+MODEL_DICT1 = {"trees": 50,
 	"split_rules": SPLIT_RULES1
 }
 SAMPLER_DICT1 = {
@@ -24,10 +24,10 @@ SAMPLER_DICT1 = {
 	"cores": 4,
 	"chains": 4,
 	"compute_convergence_checks": False,
-	"pgbart":{
-                "num_particles":5,
-                "batch":(.1,.1)
-            }
+	# "pgbart":{
+    #             "num_particles":5,
+    #             "batch":(.1,.1)
+    #         }
 }
 
 

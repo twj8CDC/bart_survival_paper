@@ -3,8 +3,8 @@ import numpy as np
 import lifelines as ll
 import sksurv as sks
 import matplotlib.pyplot as plt
-from bart_survival import surv_bart as sb
-from bart_survival import simulation as sm
+import bart_surv_adj as sb
+import sim_adj as sm
 import lifelines as ll
 from lifelines import KaplanMeierFitter
 import subprocess
@@ -64,7 +64,8 @@ def iter_simulation_1s(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict, s
         p_sv_hdi0 = odict["pb_hdi"]
         r_sv_0 = odict["r_sv"][0]
         r_sv_ci0 = odict["r_sv"][1]
-
+        print(p_sv_0)
+        print(p_sv_ci0)
         # sv_t_0 = sv_true[uniq_t-1]
         # k_sv_0 = k_sv[0]
         # k_sv_ci0 = k_sv[1]
@@ -89,8 +90,8 @@ def iter_simulation_1s(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict, s
     ax.step(range(5), sv_t_0, where="mid", color="black", label="true")
     ax.step(range(5), r_sv_ci0[1,:], color="blue", alpha=0.3, linestyle="dashed", where="mid", label="r_ci")
     ax.step(range(5), r_sv_ci0[0,:], color="blue", alpha=0.3, linestyle="dashed", where="mid")
-    ax.step(range(5), p_sv_hdi0[1,:], color="red", alpha=0.3,linestyle="dashed", where="mid", label="p_hdi")
-    ax.step(range(5), p_sv_hdi0[0,:], color="red", alpha=0.3,linestyle="dashed", where="mid")
+    # ax.step(range(5), p_sv_hdi0[1,:], color="red", alpha=0.3,linestyle="dashed", where="mid", label="p_hdi")
+    # ax.step(range(5), p_sv_hdi0[0,:], color="red", alpha=0.3,linestyle="dashed", where="mid")
     ax.step(range(5), p_sv_ci0[1,:], color="green", alpha=0.3,linestyle="dashed", where="mid", label = "p_ci")
     ax.step(range(5), p_sv_ci0[0,:], color="green", alpha=0.3,linestyle="dashed", where="mid")
     ax.step(range(5), k_sv_ci0[1,:], color="yellow", alpha=0.3,linestyle="dashed", where="mid", label = "k_ci")

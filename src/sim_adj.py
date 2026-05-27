@@ -53,8 +53,7 @@ def simulate_survival(
     cens_scale = None,
     time_scale = None,
     true_only = False,
-    rng = None,
-    end_perc = 0.005
+    rng = None
 ):
     """Generates survival outcome data from a covariate data. 
     
@@ -100,11 +99,6 @@ def simulate_survival(
         shape = eval(shape_f)
     print(f"mean shape {shape.mean()}")
     print(f"mean scale {scale.mean()}")
-    
-	#get eos
-    end_time = get_end_time(end_perc=end_perc, scale=scale, shape=shape)
-    print(end_time)
-
     if not true_only:
         # generate event_times and status
         unif = rng.uniform(size=N)
@@ -138,18 +132,20 @@ def simulate_survival(
         # get event times
         t_max = int(t_event.max())
         t = np.arange(1,t_max+1, 1, dtype="int")
-        # if force_eos is True:
-            # t = np.arange(1,eos+1, 1, dtype="int")
     else:
         if eos is None:
             t_max=100     # hack that defaults number of time points to 100
         # t = np.linspace(1,t_max+1, t_max+2, dtype="int")
         t = np.arange(1,t_max+1, 1, dtype="int")
-    t = np.arange(1,end_time+1, 1, dtype="int")
+    
 
     # Generate survival and hazard actual values
+    
+
     hz_mat = weibull_hazard(scale, shape, t)
     sv_mat = weibull_survival(scale, shape, t)
+    
+
     sv_dict = {"sv_true":sv_mat, "hz_true":hz_mat, "true_times":t}
     # down-scale
     sv_scale_dict = None
@@ -165,14 +161,6 @@ def simulate_survival(
     if true_only:
         return sv_dict, sv_scale_dict        
     return event_dict, sv_dict, sv_scale_dict
-
-def get_end_time(end_perc, scale, shape):
-    shape = shape.reshape(-1,1)
-    scale = scale.reshape(-1,1)
-    end_time = np.ceil(
-        np.power(-np.log(end_perc), 1/shape)*scale
-	)
-    return end_time.max()
 
 def check_inputs(scale, shape, u=np.array([.9]), t=np.array([1])):
     """Checks input types. If inputs are not `type` ndarray then converts to ndarray.
