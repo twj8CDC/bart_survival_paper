@@ -39,7 +39,7 @@ def main():
     for N in prm.N:
         ############################################################        
         # cond 1_1 cens 20%
-        if True:
+        if False:
             strt_time = time.time()
             seeds, cens, k,p,r,fig = si.iter_simulation_1s(
                 iters=prm.ITERS, 
@@ -59,7 +59,7 @@ def main():
             print("DONE SIMPLE_1_1")
         ############################################################
         # cond 1_2 cens 50%
-        if True:
+        if False:
             strt_time = time.time()
             seeds, cens,k,p,r, fig= si.iter_simulation_1s(
                 iters=prm.ITERS, 
@@ -79,7 +79,7 @@ def main():
             print("DONE SIMPLE_1_2")
         ############################################################
         # cond 2_1
-        if True:
+        if False:
             strt_time = time.time()
             seeds, cens,k,p,r,fig = si.iter_simulation_2s(
                 iters=prm.ITERS, 

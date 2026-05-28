@@ -1,56 +1,51 @@
-EXP_NAME = "simple1"
-# RUN_NAME = "simple_12_200_iters_400_n"
-# RUN_NAME = "small_particles_100iter"
-RUN_NAME = "small_particles_1000iter"
+EXP_NAME = "simple_test_cov"
+RUN_NAME = "simple_1"
+# RUN_NAME_cmplx3 = "cmplx_3_400"
 
 ###########################
 # ITERATIONS
-ITERS = 2
-SEED_ADDL=13
-# N  = [200, 400]
-N  = [400]
-
+ITERS = 100
+SEED_ADDL=99
+N = [400]
+PLOT_ALL=True
 ###########################
-# Cond 1
+
+# comp_1
 SPLIT_RULES1 =  [
-	"pmb.ContinuousSplitRule()", 
+    "pmb.ContinuousSplitRule()", # time
+	"pmb.ContinuousSplitRule()"
 ]
 MODEL_DICT1 = {"trees": 50,
 	"split_rules": SPLIT_RULES1
 }
 SAMPLER_DICT1 = {
-	"draws": 300,
-	"tune": 50,
+	"draws": 500,
+	"tune": 500,
 	"cores": 4,
 	"chains": 4,
 	"compute_convergence_checks": False,
-	# "pgbart":{
-    #             "num_particles":5,
-    #             "batch":(.1,.1)
-    #         }
+    "k":1.5
 }
 
 
 ###########################
-# Cond 2
+# Comp2
 SPLIT_RULES2 =  [
-	"pmb.ContinuousSplitRule()", 
-	# "pmb.OneHotSplitRule()"	
-	"pmb.ContinuousSplitRule()"
+    "pmb.ContinuousSplitRule()", # time
+    "pmb.ContinuousSplitRule()" # time
 ]
-MODEL_DICT2 = {"trees": 100,
-	"split_rules": SPLIT_RULES2,
-	# "split_prior":[10,10]
+MODEL_DICT2 = {"trees": 50,
+	"split_rules": SPLIT_RULES2
 }
 SAMPLER_DICT2 = {
-	"draws": 300,
-	"tune": 50,
+	"draws": 1000,
+	"tune": 1000,
 	"cores": 4,
 	"chains": 4,
 	"compute_convergence_checks": False,
-	"pgbart":{
-                "num_particles":5,
-                "batch":(.1,.1)
-            }
+    "k":2,
+    "update_fraction":.05,
+    "step_size":.3,
+    "thin":10
 }
-PLOT_ALL=True
+

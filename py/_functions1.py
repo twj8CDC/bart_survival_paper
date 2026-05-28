@@ -326,6 +326,7 @@ def get_py_bart_surv2(x_mat, event_dict, model_dict, sampler_dict):
     # fit with just the time column
     BSM.fit(y=trn["y"], X=trn["x"], weights=trn["w"], coords = trn["coord"], random_seed=99)
     post1 = BSM.sample_posterior_predictive(X_pred=small_post_x, coords=small_coords)
+    # post1 = BSM.sample_posterior_predictive(, coords=small_coords)
     sv_prob = sb.get_sv_prob(post1, small_coords)
 
     sv_1 = pb_sb_sub(sv_prob, 0)

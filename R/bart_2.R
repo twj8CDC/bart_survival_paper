@@ -13,6 +13,7 @@ delta <- df$s
 
 # generate the pre df (only will be on times)
 pre <- surv.pre.bart(times=times, delta=delta, x.train=x, x.test=x_test)##(, K=50)
+write.csv(cbind(pre$tx.train, pre$y.train), "../data/tmp_output2.csv")
 
 post <- mc.surv.bart(x.train=pre$tx.train, y=pre$y.train,
                     x.test = pre$tx.test,

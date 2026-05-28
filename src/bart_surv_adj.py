@@ -93,7 +93,11 @@ class BartSurvModel():
         self.offset = sp.norm.ppf(np.mean(self.y))
         # model coords
         mcoords = {"xvars":self.predictor_names}
+        k = self.sampler_config.get("k", 2)
+        update_fraction = self.sampler_config.get("update_fraction", .1)
+        step_size = self.sampler_config.get("step_size", .3)
         
+        print(f'k {k}')
         # initalize model
         print("new Model")
         with pm.Model(coords=mcoords) as self.model:    
@@ -108,9 +112,9 @@ class BartSurvModel():
                     use_sparsity=False, 
                     target_x = self.X,
                     target_y = self.y,
-                    update_fraction=.1, # number of trees to update
-                    k=2, 
-                    step_size = .3, # random-walk step size 
+                    update_fraction=update_fraction, # number of trees to update
+                    k=k, 
+                    step_size = step_size, # random-walk step size 
                     return_estimate = False
                     )
         
@@ -142,13 +146,15 @@ class BartSurvModel():
             )
         
 
-        
+        draws = self.sampler_config.get("draws")
+        tune = self.sampler_config.get("tune")
+
         with self.model:
             sampler_args = {**self.sampler_config, **kwargs}
             # idata = pm.sample(**sampler_args)
             idata = pm.sample(
-                draws=1000, 
-                tune=1000, 
+                draws=draws, 
+                tune=tune, 
                 # chains=4, 
                 # cores=4,
                 step=self.custom_step,  # If None, PyMC handles it
@@ -260,7 +266,8 @@ class BartSurvModel():
         if not self.is_fitted_:
             raise RuntimeError("Model is not fitted in this instance. Either refit or predict with bart_predict")
         
-        preds = predict_out_of_sample(self.idata, X_pred, m_trees=self.M, thin=10)
+        thin = self.sampler_config.get("thin", 1)
+        preds = predict_out_of_sample(self.idata, X_pred, m_trees=self.M, thin=thin)
         return preds
         # with self.model:  # sample with new input data
         #     pm.set_data({"x_data":X_pred} , coords={"p_obs":coords})
@@ -515,40 +522,6 @@ class BartSurvModel():
         hasher.update(self._model_type.encode())
         return hasher.hexdigest()[:16]
 
-# def get_time_transform(
-#     t_event:np.ndarray, 
-#     time_scale:int = 10
-# )->np.ndarray:
-#     """Down scale event time data.
-
-#     The BartSurvModel is a resource heavy model. Because each observation is expanded into a long-time format, using non-scaled times will increase the training data by number of time points up-to each event times. To reduce the computational burden it is recommended to down-scale to the event times. 
-#     In example, if there are 90 days in the event-time and down-scaling of 30 was applied, it would return times 1,2,3 corresponding to days 30,60,90.
-
-#     Args:
-#         t_event (np.ndarray): Event times.
-#         time_scale (int, optional): Scale by which to reduce event times. Defaults to 10.
-
-#     Returns:
-#         np.ndarray: Down-scaled event times.
-#     """
-#     return np.ceil(t_event/time_scale)
-    
-# def get_y_format(
-#     status:np.ndarray, 
-#     t_event:np.ndarray
-# )->np.ndarray:
-#     """Reformats event status and event times to the sklearn-survival default format.
-
-#     Args:
-#         status (np.ndarray): Event status.
-#         t_event (np.ndarray): Event time.
-
-#     Returns:
-#         np.ndarray: Event status/time in sklearn format.
-#     """
-#     y = np.array(list(zip(np.array(status, dtype="bool"), t_event)), dtype=[("Status","?"),("Survival_in_days", "<f8")])
-#     return y
-
 def get_surv_pre_train( 
     y_time:np.ndarray,
     y_status:np.ndarray,
@@ -723,7 +696,7 @@ def get_sv_prob(
         Dict: Risk Probability (Hazard) and Survival Probability for each draw, observation and time.
     """
     n,k = np.unique(coords, return_counts=True)
-    print(n,k)
+    
     if "Dataset" in str(post):
         prob = post.mu.values.reshape(-1, n.shape[0], k[0])
     else:
