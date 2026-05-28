@@ -16,7 +16,7 @@ from pymc_bart.utils import _sample_posterior
 import cloudpickle as cpkl
 from numpy.random import RandomState
 import multiprocessing as mp
-from bart_adj import FastSurvPGBART, predict_out_of_sample
+from bart_adj import FastSurvMHBART, predict_out_of_sample
 
 # test
 class BartSurvModel():
@@ -107,7 +107,7 @@ class BartSurvModel():
             obs = pm.Bernoulli("obs", p=prob, observed=self.y)
         
             # initiallize the step
-            self.custom_step = FastSurvPGBART(
+            self.custom_step = FastSurvMHBART(
                     vars=[trees], 
                     use_sparsity=False, 
                     target_x = self.X,
@@ -117,18 +117,7 @@ class BartSurvModel():
                     step_size = step_size, # random-walk step size 
                     return_estimate = False
                     )
-        
-
             
-            # self.model.add_coord("p_obs", coords, mutable=True)
-            # x_data = pm.MutableData("x_data", self.X, dims=("p_obs", "xvars"))
-            # w = pm.MutableData("weights", self.weights)
-            # # change names of y_values
-            # f = pmb.BART("f", X=x_data, Y=self.y.flatten(), m=M, split_rules = SPLIT_RULES, split_prior = SPLIT_PRIOR)
-            # z = pm.Deterministic("z", (f + self.offset))
-            # mu = pm.Deterministic("mu", pm.math.invprobit(z), dims=("p_obs"))
-            # pm.CustomDist("y_pred", mu, w.flatten(), dist=dist_bern, logp=logp_bern, observed=self.y.flatten(), shape = x_data.shape[0])            
-
 
 
     def sample_model(
@@ -267,7 +256,8 @@ class BartSurvModel():
             raise RuntimeError("Model is not fitted in this instance. Either refit or predict with bart_predict")
         
         thin = self.sampler_config.get("thin", 1)
-        preds = predict_out_of_sample(self.idata, X_pred, m_trees=self.M, thin=thin)
+        print(self.custom_step.offset)
+        preds = predict_out_of_sample(self.idata, X_pred, self.custom_step.offset, m_trees=self.M, thin=thin)
         return preds
         # with self.model:  # sample with new input data
         #     pm.set_data({"x_data":X_pred} , coords={"p_obs":coords})

@@ -1,9 +1,11 @@
+
+import os
 import numpy as np
 import math
-# import pymc as pm
-# import pymc_bart as pmb
+import pymc as pm
+import pymc_bart as pmb
 from pymc_bart.pgbart import PGBART
-from numba import njit
+from numba import njit,set_num_threads
 import scipy as sp
 
 
@@ -46,18 +48,69 @@ def get_active_leaves(F_tree, current_node_count):
     return leaves[:leaf_count]
 
 @njit(fastmath=True)
-def propose_grow(tree_idx, X, F, T, L, R, V, D, node_counts, alpha_vec, leaf_prior_std):
+def is_split_valid(X, F_tree, T_tree, L_tree, R_tree, target_node, split_feat, split_val, min_node_size):
+    n_rows = X.shape[0]
+    left_count = 0
+    right_count = 0
+    
+    for i in range(n_rows):
+        node = 0
+        # Drop observation down the tree until it hits a leaf OR our target node
+        while F_tree[node] != -1 and node != target_node:
+            if X[i, F_tree[node]] <= T_tree[node]:
+                node = L_tree[node]
+            else:
+                node = R_tree[node]
+                
+        # If the observation landed in the node we are trying to split...
+        if node == target_node:
+            if X[i, split_feat] <= split_val:
+                left_count += 1
+            else:
+                right_count += 1
+                
+    # The split is only valid if BOTH new leaves have enough data
+    return (left_count >= min_node_size) and (right_count >= min_node_size)
+
+@njit(fastmath=True)
+def propose_grow(tree_idx, X, F, T, L, R, V, D, node_counts, alpha_vec, leaf_prior_std, min_node_size):
     current_count = node_counts[tree_idx]
     leaves = get_active_leaves(F[tree_idx], current_count)
-    if current_count >= F.shape[1] - 1: return False, -1 
+    if current_count >= F.shape[1] - 1: return False, -1, 0.0 # <--- ADDED RETURN VAR
         
     random_idx = np.random.randint(0, len(leaves))
     leaf_to_split = leaves[random_idx]
     
-    # NEW: Sparsity-aware feature selection
     split_feature = sample_feature(alpha_vec)
-    feat_min, feat_max = np.min(X[:, split_feature]), np.max(X[:, split_feature])
-    split_value = np.random.uniform(feat_min, feat_max)
+    
+    # THE FIX: Find the LOCAL bounds for the data actually inside this leaf
+    local_min = np.inf
+    local_max = -np.inf
+    n_rows = X.shape[0]
+
+    for i in range(n_rows):
+        node = 0
+        while F[tree_idx, node] != -1 and node != leaf_to_split:
+            if X[i, F[tree_idx, node]] <= T[tree_idx, node]:
+                node = L[tree_idx, node]
+            else:
+                node = R[tree_idx, node]
+                
+        if node == leaf_to_split:
+            val = X[i, split_feature]
+            if val < local_min: local_min = val
+            if val > local_max: local_max = val
+
+    # If the feature is a constant in this leaf, we physically cannot split it
+    if local_min == local_max:
+        return False, -1, 0.0
+
+    # Draw uniformly from the strictly valid LOCAL bounds
+    split_value = np.random.uniform(local_min, local_max)
+
+    if not is_split_valid(X, F[tree_idx], T[tree_idx], L[tree_idx], R[tree_idx], 
+                          leaf_to_split, split_feature, split_value, min_node_size):
+        return False, -1, 0.0 
     
     left_child_idx, right_child_idx = current_count, current_count + 1
     
@@ -68,21 +121,62 @@ def propose_grow(tree_idx, X, F, T, L, R, V, D, node_counts, alpha_vec, leaf_pri
     F[tree_idx, left_child_idx] = -1
     F[tree_idx, right_child_idx] = -1
     
-    # NEW: Update the Depth pointer
     parent_depth = D[tree_idx, leaf_to_split]
     D[tree_idx, left_child_idx] = parent_depth + 1
     D[tree_idx, right_child_idx] = parent_depth + 1
 
-    # NEW: Inherit parent's value and add noise to the new leaves!
-    parent_val = V[tree_idx, leaf_to_split]
-    # V[tree_idx, left_child_idx] = parent_val + np.random.normal(0.0, leaf_prior_std)
-    # V[tree_idx, right_child_idx] = parent_val + np.random.normal(0.0, leaf_prior_std)
     V[tree_idx, left_child_idx] = np.random.normal(0.0, leaf_prior_std)
     V[tree_idx, right_child_idx] = np.random.normal(0.0, leaf_prior_std)
     
-    
     node_counts[tree_idx] += 2
-    return True, leaf_to_split
+    
+    # Return the local range so the Metropolis ratio can grade it fairly
+    feat_range = max(local_max - local_min, 1e-5)
+    return True, leaf_to_split, feat_range
+
+# @njit(fastmath=True)
+# def propose_grow(tree_idx, X, F, T, L, R, V, D, node_counts, alpha_vec, leaf_prior_std, min_node_size):
+#     current_count = node_counts[tree_idx]
+#     leaves = get_active_leaves(F[tree_idx], current_count)
+#     if current_count >= F.shape[1] - 1: return False, -1 
+        
+#     random_idx = np.random.randint(0, len(leaves))
+#     leaf_to_split = leaves[random_idx]
+    
+#     # NEW: Sparsity-aware feature selection
+#     split_feature = sample_feature(alpha_vec)
+#     feat_min, feat_max = np.min(X[:, split_feature]), np.max(X[:, split_feature])
+#     split_value = np.random.uniform(feat_min, feat_max)
+
+#     # NEW: Validate the split against the data!
+#     if not is_split_valid(X, F[tree_idx], T[tree_idx], L[tree_idx], R[tree_idx], 
+#                           leaf_to_split, split_feature, split_value, min_node_size):
+#         return False, -1 # Reject instantly if it isolates too few observations
+    
+#     left_child_idx, right_child_idx = current_count, current_count + 1
+    
+#     F[tree_idx, leaf_to_split] = split_feature
+#     T[tree_idx, leaf_to_split] = split_value
+#     L[tree_idx, leaf_to_split] = left_child_idx
+#     R[tree_idx, leaf_to_split] = right_child_idx
+#     F[tree_idx, left_child_idx] = -1
+#     F[tree_idx, right_child_idx] = -1
+    
+#     # NEW: Update the Depth pointer
+#     parent_depth = D[tree_idx, leaf_to_split]
+#     D[tree_idx, left_child_idx] = parent_depth + 1
+#     D[tree_idx, right_child_idx] = parent_depth + 1
+
+#     # NEW: Inherit parent's value and add noise to the new leaves!
+#     parent_val = V[tree_idx, leaf_to_split]
+#     # V[tree_idx, left_child_idx] = parent_val + np.random.normal(0.0, leaf_prior_std)
+#     # V[tree_idx, right_child_idx] = parent_val + np.random.normal(0.0, leaf_prior_std)
+#     V[tree_idx, left_child_idx] = np.random.normal(0.0, leaf_prior_std)
+#     V[tree_idx, right_child_idx] = np.random.normal(0.0, leaf_prior_std)
+    
+    
+#     node_counts[tree_idx] += 2
+#     return True, leaf_to_split
 
 @njit(fastmath=True)
 def get_prunable_nodes(F_tree, L_tree, R_tree, current_node_count):
@@ -122,7 +216,7 @@ def get_internal_nodes(F_tree, current_node_count):
     return internal[:count]
 
 @njit(fastmath=True)
-def propose_change(tree_idx, X, F, T, node_counts, alpha_vec):
+def propose_change(tree_idx, X, F, T, L, R, node_counts, alpha_vec, min_node_size):
     current_count = node_counts[tree_idx]
     internal_nodes = get_internal_nodes(F[tree_idx], current_count)
     if len(internal_nodes) == 0: return False, -1, -1, 0.0
@@ -137,6 +231,9 @@ def propose_change(tree_idx, X, F, T, node_counts, alpha_vec):
     new_feature = sample_feature(alpha_vec)
     feat_min, feat_max = np.min(X[:, new_feature]), np.max(X[:, new_feature])
     new_threshold = np.random.uniform(feat_min, feat_max)
+    if not is_split_valid(X, F[tree_idx], T[tree_idx], L[tree_idx], R[tree_idx], 
+                          node_to_change, new_feature, new_threshold, min_node_size):
+        return False, -1, -1, 0.0 # Reject the change
     
     F[tree_idx, node_to_change] = new_feature
     T[tree_idx, node_to_change] = new_threshold
@@ -167,6 +264,41 @@ def propose_leaf_change(tree_idx, F, V, node_counts, leaf_prior_std, step_size):
     return True, leaf_to_change, old_val, penalty
 
 
+@njit(fastmath=True)
+def update_leaves_gibbs(X, Z, partial_pred, F_tree, T_tree, L_tree, R_tree, V_tree, leaf_prior_std):
+    n_rows = X.shape[0]
+    max_nodes = V_tree.shape[0]
+    
+    sum_res = np.zeros(max_nodes, dtype=np.float32)
+    count = np.zeros(max_nodes, dtype=np.int32)
+    
+    # 1. Drop all observations down the tree to find their leaf node
+    for i in range(n_rows):
+        node = 0
+        while F_tree[node] != -1:
+            if X[i, F_tree[node]] <= T_tree[node]:
+                node = L_tree[node]
+            else:
+                node = R_tree[node]
+        
+        # Accumulate the residual in the leaf
+        res = Z[i] - partial_pred[i]
+        sum_res[node] += res
+        count[node] += 1
+        
+    tau2 = leaf_prior_std ** 2
+    
+    # 2. Update every active leaf directly from the exact posterior!
+    for node in range(max_nodes):
+        if F_tree[node] == -1 and count[node] > 0:
+            n = count[node]
+            
+            # The Exact Gaussian Conjugate Posterior Math
+            post_var = tau2 / (1.0 + n * tau2)
+            post_mean = post_var * sum_res[node]
+            
+            # Draw the new leaf value with perfect mathematical variance
+            V_tree[node] = post_mean + np.random.normal(0.0, math.sqrt(post_var))
 
 # ==========================================
 # 3. LIKELIHOOD AND PRIORS
@@ -200,6 +332,55 @@ def calc_probit_loglik(Y, partial_pred, tree_pred):
     return log_lik
 
 @njit(fastmath=True)
+def calc_marginal_loglik(X, Z, partial_pred, F_tree, T_tree, L_tree, R_tree, leaf_prior_std):
+    n_rows = X.shape[0]
+    max_nodes = F_tree.shape[0]
+    
+    sum_res = np.zeros(max_nodes, dtype=np.float32)
+    count = np.zeros(max_nodes, dtype=np.int32)
+    
+    # 1. Drop observations down the tree to accumulate residuals per leaf
+    for i in range(n_rows):
+        node = 0
+        while F_tree[node] != -1:
+            if X[i, F_tree[node]] <= T_tree[node]:
+                node = L_tree[node]
+            else:
+                node = R_tree[node]
+        
+        res = Z[i] - partial_pred[i]
+        sum_res[node] += res
+        count[node] += 1
+        
+    tau2 = leaf_prior_std ** 2
+    log_lik = 0.0
+    
+    # 2. Calculate the exact marginal likelihood for the active leaves
+    for node in range(max_nodes):
+        if F_tree[node] == -1 and count[node] > 0:
+            n = count[node]
+            S = sum_res[node]
+            
+            # The Marginal Likelihood Integration Formula
+            term1 = -0.5 * math.log(1.0 + n * tau2)
+            term2 = (tau2 * (S ** 2)) / (2.0 * (1.0 + n * tau2))
+            log_lik += (term1 + term2)
+            
+    return log_lik
+
+# @njit(fastmath=True)
+# def calc_gaussian_loglik(Z, partial_pred, tree_pred):
+#     n_rows = Z.shape[0]
+#     log_lik = 0.0
+#     for i in range(n_rows):
+#         eta = partial_pred[i] + tree_pred[i]
+#         residual = Z[i] - eta
+#         # Gaussian log-likelihood proportional to -0.5 * SSE
+#         # (Assuming variance of the latent Probit Z is fixed at 1.0)
+#         log_lik -= 0.5 * (residual * residual) 
+#     return log_lik
+
+@njit(fastmath=True)
 def calc_grow_prior_ratio(node_depth, leaf_priors):
     # SAFETY 1: If the tree tries to grow deeper than the prior allows, crush it.
     if node_depth + 1 >= len(leaf_priors):
@@ -218,13 +399,38 @@ def calc_grow_prior_ratio(node_depth, leaf_priors):
     return math.log(prior_ratio)
 
 
+
+def draw_latent_z(Y, current_eta):
+    """
+    Y: True binary array (0s and 1s)
+    current_eta: The current sum of the trees (predictions)
+    """
+    # Initialize Z array
+    Z = np.zeros_like(current_eta)
+    
+    # For Y == 1, draw from Normal(eta, 1) truncated to [0, infinity]
+    idx1 = (Y == 1)
+    if np.any(idx1):
+        # stats.truncnorm uses bounds defined relative to the standard normal
+        a_bounds = (0.0 - current_eta[idx1]) / 1.0
+        Z[idx1] = sp.stats.truncnorm.rvs(a=a_bounds, b=np.inf, loc=current_eta[idx1], scale=1.0)
+        
+    # For Y == 0, draw from Normal(eta, 1) truncated to [-infinity, 0]
+    idx0 = (Y == 0)
+    if np.any(idx0):
+        b_bounds = (0.0 - current_eta[idx0]) / 1.0
+        Z[idx0] = sp.stats.truncnorm.rvs(a=-np.inf, b=b_bounds, loc=current_eta[idx0], scale=1.0)
+        
+    return Z
+
 @njit(fastmath=True)
-def mcmc_fractional_sweep(X, Y, F, T, L, R, V, D, node_counts, 
+def mcmc_fractional_sweep(X, Z, F, T, L, R, V, D, node_counts, 
                           sum_trees, alpha_vec, 
                           leaf_priors, leaf_prior_std,
                           step_size,
                           accept_stats,
-                          update_fraction=0.1):
+                          update_fraction=0.1,
+                          min_node_size = 5):
     m_trees = F.shape[0]
 
 
@@ -241,36 +447,44 @@ def mcmc_fractional_sweep(X, Y, F, T, L, R, V, D, node_counts,
         accept_stats[0] += 1
         old_tree_pred = get_tree_prediction(X, F[m], T[m], L[m], R[m], V[m])
         partial_pred = sum_trees - old_tree_pred
-        old_ll = calc_probit_loglik(Y, partial_pred, old_tree_pred)
+        # old_ll = calc_probit_loglik(Y, partial_pred, old_tree_pred)
+        # old_ll = calc_gaussian_loglik(Z, partial_pred, old_tree_pred)
+        old_ll = calc_marginal_loglik(X, Z, partial_pred, F[m], T[m], L[m], R[m], leaf_prior_std)
         
         step_type = np.random.random()
         mutation_type = -1  
         success = False
         penalty = 0.0
         
-        if step_type < 0.25:
-            success, mutated_node = propose_grow(m, X, F, T, L, R, V, D, node_counts, alpha_vec, leaf_prior_std)
-            if success: penalty = calc_grow_prior_ratio(D[m, mutated_node], leaf_priors)
+        if step_type < 0.33:
+            
+            success, mutated_node, feat_range = propose_grow(m, X, F, T, L, R, V, D, node_counts, alpha_vec, leaf_prior_std, min_node_size)
+            # success, mutated_node = propose_grow(m, X, F, T, L, R, V, D, node_counts, alpha_vec, leaf_prior_std, min_node_size)
+            if success: 
+                penalty = calc_grow_prior_ratio(D[m, mutated_node], leaf_priors)
             mutation_type = 0
-        elif step_type < 0.50:
+        elif step_type < 0.66:
             success, mutated_node, old_feat = propose_prune(m, F, L, R, V, node_counts, leaf_prior_std)
             if success: penalty = -calc_grow_prior_ratio(D[m, mutated_node], leaf_priors)
             mutation_type = 1
-        elif step_type < 0.75:
-            success, mutated_node, old_feat, old_thresh = propose_change(m, X, F, T, node_counts, alpha_vec)
-            mutation_type = 2
         else:
-            success, mutated_node, old_v, leaf_penalty = propose_leaf_change(m, F, V, node_counts, leaf_prior_std, step_size)
-            if success: 
-                penalty = leaf_penalty
-            mutation_type = 3
+            success, mutated_node, old_feat, old_thresh = propose_change(m, X, F, T, L, R, node_counts, alpha_vec, min_node_size)
+            mutation_type = 2
+        # else:
+        #     success, mutated_node, old_v, leaf_penalty = propose_leaf_change(m, F, V, node_counts, leaf_prior_std, step_size)
+        #     if success: 
+        #         penalty = leaf_penalty
+        #     mutation_type = 3
             # success, mutated_node, old_v = propose_leaf_change(m, F, V, node_counts, leaf_prior_std)
             # mutation_type = 3
             
         if not success: continue
             
         new_tree_pred = get_tree_prediction(X, F[m], T[m], L[m], R[m], V[m])
-        new_ll = calc_probit_loglik(Y, partial_pred, new_tree_pred)
+        # new_ll = calc_gaussian_loglik(Z, partial_pred, new_tree_pred)
+        new_ll = calc_marginal_loglik(X, Z, partial_pred, F[m], T[m], L[m], R[m], leaf_prior_std)
+        # new_ll = calc_probit_loglik(Y, partial_pred, new_tree_pred)
+        
         
         log_alpha = (new_ll - old_ll) + penalty
         accept = math.log(np.random.random()) < log_alpha
@@ -284,12 +498,18 @@ def mcmc_fractional_sweep(X, Y, F, T, L, R, V, D, node_counts,
                 node_counts[m] -= 2
             elif mutation_type == 1:
                 F[m, mutated_node] = old_feat
-            elif mutation_type == 2:
+            else:
                 F[m, mutated_node] = old_feat
                 T[m, mutated_node] = old_thresh
-            elif mutation_type == 3:
-                V[m, mutated_node] = old_v
+            # elif mutation_type == 3:
+            #     V[m, mutated_node] = old_v
             sum_trees[:] = partial_pred + old_tree_pred
+
+        update_leaves_gibbs(X, Z, partial_pred, F[m], T[m], L[m], R[m], V[m], leaf_prior_std)
+        
+        # Update the global sum array with the fresh, perfectly variant Gibbs leaves
+        final_gibbs_pred = get_tree_prediction(X, F[m], T[m], L[m], R[m], V[m])
+        sum_trees[:] = partial_pred + final_gibbs_pred
 
 # ==========================================
 # 5. PYTHON API HANDOFF
@@ -311,12 +531,14 @@ class FastTreeState:
         self.V[:, 0] = init_mean / m_trees
 
 
-class FastSurvPGBART(PGBART):
+class FastSurvMHBART(PGBART):
     def __init__(self, vars, target_x=None, 
                  target_y=None, use_sparsity=True, 
                  update_fraction=1.0, 
                  k=2,
                  step_size=.1,
+                 min_node_size=5,
+                 offset = None,
                  return_estimates=False, *args, **kwargs):
         # 1. Initialize the parent class to set up the PyMC hooks
         super().__init__(vars, *args, **kwargs)
@@ -325,6 +547,7 @@ class FastSurvPGBART(PGBART):
         self.total_count = 0
         self.use_sparsity = use_sparsity
         self.update_fraction = update_fraction
+        self.min_node_size = min_node_size
         # self.return_estimates = return_estimates
         
         # 2. THE EXPLICIT OVERRIDE: 
@@ -341,11 +564,16 @@ class FastSurvPGBART(PGBART):
             actual_X = target_x
             actual_Y=target_y
         
-        # 3. Setup the C-Engine memory
-        base_prob = np.clip(actual_Y.mean(), 1e-5, 1.0 - 1e-5)
-        latent_init = sp.stats.norm.ppf(base_prob)
-        self.c_tree_state = FastTreeState(m_trees=self.m, init_mean=latent_init)
+        if offset == None:
+            base_prob = np.clip(actual_Y.mean(), 1e-5, 1.0 - 1e-5)
+            self.offset = sp.stats.norm.ppf(base_prob)
+        else:
+            self.offset = offset
         
+        self.c_tree_state = FastTreeState(m_trees=self.m, init_mean=0.0)
+        self.flat_sum_trees = np.zeros(actual_X.shape[0], dtype=np.float32)
+        # self.flat_sum_trees = np.full(actual_X.shape[0], latent_init, dtype=np.float32)
+
         # self.k = 1.0 # Or whatever tuning you want (lower = less shrinkage)
         # self.leaf_prior_std = np.float32(3.0 / (self.k * np.sqrt(self.m)))
         self.k = k
@@ -354,9 +582,8 @@ class FastSurvPGBART(PGBART):
         self.step_size = step_size
 
         self.numba_X = np.copy(np.ascontiguousarray(actual_X))
-        self.numba_Y = np.copy(np.ascontiguousarray(actual_Y))
-        
-        self.flat_sum_trees = np.full(actual_X.shape[0], latent_init, dtype=np.float32)
+        self.numba_Y = np.copy(np.ascontiguousarray(actual_Y)).ravel()
+                
         
         self.alpha_vec = np.ones(actual_X.shape[1], dtype=np.float32)
         self.numba_leaf_priors = np.array(self.prior_prob_leaf_node, dtype=np.float32)
@@ -374,8 +601,30 @@ class FastSurvPGBART(PGBART):
         self.accept_stats = np.zeros(2, dtype=np.int64)
 
     def astep(self, q0):
+        current_eta = self.flat_sum_trees + self.offset
+
+        # NEW: Draw the continuous latent variable Z based on current predictions
+        Z = np.zeros_like(self.flat_sum_trees)
+        
+        # For Y == 1, draw from Normal(eta, 1) truncated to [0, infinity]
+        idx1 = (self.numba_Y == 1)
+        if np.any(idx1):
+            a_bounds = (0.0 - current_eta[idx1]) / 1.0
+            Z[idx1] = sp.stats.truncnorm.rvs(a=a_bounds, b=np.inf, loc=current_eta[idx1], scale=1.0)
+            
+        # For Y == 0, draw from Normal(eta, 1) truncated to [-infinity, 0]
+        idx0 = (self.numba_Y == 0)
+        if np.any(idx0):
+            b_bounds = (0.0 - current_eta[idx0]) / 1.0
+            Z[idx0] = sp.stats.truncnorm.rvs(a=-np.inf, b=b_bounds, loc=current_eta[idx0], scale=1.0)
+            
+        # Ensure Z is contiguous for Numba
+        Z_residual = Z - self.offset
+        Z_numba = np.ascontiguousarray(Z_residual, dtype=np.float32)
+
+        # CHANGE: Pass Z_numba instead of self.numba_Y
         mcmc_fractional_sweep(
-            self.numba_X, self.numba_Y, 
+            self.numba_X, Z_numba, 
             self.c_tree_state.F, self.c_tree_state.T, 
             self.c_tree_state.L, self.c_tree_state.R, 
             self.c_tree_state.V, self.c_tree_state.D, 
@@ -386,7 +635,8 @@ class FastSurvPGBART(PGBART):
             self.leaf_prior_std,
             self.step_size,
             self.accept_stats,
-            self.update_fraction # <-- Pass to C-Loop
+            self.update_fraction,
+            self.min_node_size
         )
         
         var_counts = get_split_counts(self.c_tree_state.F, self.num_variates)
@@ -405,7 +655,15 @@ class FastSurvPGBART(PGBART):
             "V_trees": self.c_tree_state.V.copy(),
             "node_counts": self.c_tree_state.node_counts.copy()
         }
-       
+
+        # tracking
+        # if self.accept_stats[0] > 0:
+        #     rate = self.accept_stats[1] / self.accept_stats[0]
+        #     if self.accept_stats[0] % 1000 == 0:
+        #         print(f"Iteration {self.accept_stats[0]} | Acceptance Rate: {rate:.3f}")
+        # if not self.tune:
+            # print(f"Latent range: {np.min(self.flat_sum_trees):.2f} to {np.max(self.flat_sum_trees):.2f}")
+        
         if self.return_estimates == True:
             self.sum_trees[0, 0, :] = self.flat_sum_trees
             return self.sum_trees, [stats]
@@ -414,37 +672,10 @@ class FastSurvPGBART(PGBART):
             
 
 
-@njit(fastmath=True)
-def _fast_predict_trace(X, F, T, L, R, V):
-    n_samples = F.shape[0]
-    m_trees = F.shape[1]
-    n_obs = X.shape[0]
-    preds = np.zeros((n_samples, n_obs), dtype=np.float32)
-    for s in range(n_samples):
-        for i in range(n_obs):
-            tree_sum = 0.0
-            
-            # Drop this observation down all M trees in this specific sample
-            for m in range(m_trees):
-                node = 0
-                
-                # Walk the tree until we hit a leaf (F == -1)
-                while F[s, m, node] != -1:
-                    feat = F[s, m, node]
-                    val = X[i, feat]
-                    
-                    if val <= T[s, m, node]:
-                        node = L[s, m, node]
-                    else:
-                        node = R[s, m, node]
-                        
-                tree_sum += V[s, m, node]
-                
-            preds[s, i] = tree_sum            
-    return preds
 
 
-@njit(fastmath=False, parallel=False)
+
+@njit(fastmath=True, parallel=False)
 def _fast_predict_trace(X, F, T, L, R, V):
     n_samples = F.shape[0]
     m_trees = F.shape[1]
@@ -477,7 +708,7 @@ def _fast_predict_trace(X, F, T, L, R, V):
                 
     return preds
 
-def predict_out_of_sample(trace, X_new, m_trees=50, max_nodes=255, thin=1):
+def predict_out_of_sample(trace, X_new, offset, m_trees=50, max_nodes=255, thin=1):
     """
     Extracts the serialized forest topology from a PyMC trace, 
     applies an optional thinning parameter to accelerate prediction,
@@ -511,7 +742,8 @@ def predict_out_of_sample(trace, X_new, m_trees=50, max_nodes=255, thin=1):
     n_obs = X_new.shape[0]
     
     print(f"Processing: Dropping {n_obs} rows down {n_samples_thinned} thinned historical forests (Thin factor: {thin})...")
-    latent_scores = _fast_predict_trace(X_numba, F, T, L, R, V)
+    raw_tree_sums = _fast_predict_trace(X_numba, F, T, L, R, V)
+    latent_scores = raw_tree_sums + offset
     
     # Vectorized fast probit translation
     probabilities = sp.stats.norm.cdf(latent_scores)

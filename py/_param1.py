@@ -44,8 +44,8 @@ SAMPLER_DICT2 = {
 	"chains": 4,
 	"compute_convergence_checks": False,
     "k":2,
-    "update_fraction":.05,
-    "step_size":.3,
+    "update_fraction":1,
+    "step_size":.1,
     "thin":10
 }
 
