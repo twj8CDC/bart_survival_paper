@@ -96,7 +96,7 @@ class BartSurvModel():
         k = self.sampler_config.get("k", 2)
         update_fraction = self.sampler_config.get("update_fraction", .1)
         step_size = self.sampler_config.get("step_size", .3)
-        
+        self.use_sparsity = self.sampler_config.get("use_sparsity", False)
         print(f'k {k}')
         # initalize model
         print("new Model")
@@ -109,7 +109,7 @@ class BartSurvModel():
             # initiallize the step
             self.custom_step = FastSurvMHBART(
                     vars=[trees], 
-                    use_sparsity=False, 
+                    use_sparsity=self.use_sparsity, 
                     target_x = self.X,
                     target_y = self.y,
                     update_fraction=update_fraction, # number of trees to update
