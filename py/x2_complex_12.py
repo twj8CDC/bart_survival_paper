@@ -42,9 +42,9 @@ def main():
  
         ############################################################
         # complex1
-        if False:
+        if True:
             strt_time = time.time()
-            meta, seeds, cens,k,p,r, fig = si.iter_simulation_complex1(
+            meta, seeds, cens,k,p,r, fig = si.iter_simulation_complex12(
                 iters=prm.ITERS, 
                 n=N,
                 seed_addl=prm.SEED_ADDL,
@@ -71,9 +71,9 @@ def main():
             print("DONE complex 1")
         ############################################################
         #complex 2
-        if False:
+        if True:
             strt_time = time.time()
-            meta, seeds, cens,k,p,r, fig = si.iter_simulation_complex1(
+            meta, seeds, cens,k,p,r, fig = si.iter_simulation_complex12(
                 iters=prm.ITERS, 
                 n=N,
                 seed_addl=prm.SEED_ADDL,
@@ -99,7 +99,8 @@ def main():
             ml.log_dict({"time":end_time}, tname)
             print("DONE complex 2")
 
-        if True:
+        # I believe this was moved to a seperate file
+        if False:
             strt_time = time.time()
             meta, seeds, cens,k,p,r, fig = si.iter_simulation_complex2(
                 iters=prm.ITERS, 

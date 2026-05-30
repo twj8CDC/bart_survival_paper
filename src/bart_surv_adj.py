@@ -97,9 +97,8 @@ class BartSurvModel():
         update_fraction = self.sampler_config.get("update_fraction", .1)
         step_size = self.sampler_config.get("step_size", .3)
         self.use_sparsity = self.sampler_config.get("use_sparsity", False)
-        print(f'k {k}')
+        
         # initalize model
-        print("new Model")
         with pm.Model(coords=mcoords) as self.model:    
             # dummy place-holder - data actually set in the step backdoor
             trees = pmb.BART("trees", X=np.zeros((1,self.X.shape[1])), Y=np.zeros(1), m=self.M)

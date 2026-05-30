@@ -1,24 +1,5 @@
-import pandas as pd
-# import numpy as np
-# import lifelines as ll
-# import sksurv as sks
-import matplotlib.pyplot as plt
-# from bart_survival import surv_bart as sb
-# from bart_survival import simulation as sm
-# import lifelines as ll
-# from lifelines import KaplanMeierFitter
-import subprocess
-import importlib
-import _functions1 as fn
-import _conditions1 as cn
-import _plot_fx as pltf
-plt.ioff()
-importlib.reload(pltf)
-importlib.reload(fn)
-importlib.reload(cn)
-
-# parameter check
-def iter_simulation_prm1(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict, sampler_dict):
+# this is for continuous complex
+def iter_simulation_complex3(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict, sampler_dict, plot_all):
     """_summary_
 
     Args:
@@ -32,111 +13,140 @@ def iter_simulation_prm1(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict,
     Returns:
         _type_: _description_
     """
-    cov_hdi = []
-    cov_ci = []
-    iv_hdi = []
-    iv_ci = []
-    rmse = []
-    bias = []
-    cov_hdi_tst = []
-    cov_ci_tst = []
-    iv_hdi_tst = []
-    iv_ci_tst = []
-    rmse_tst = []
-    bias_tst = []
-    figs = []
-    seeds = []
-
+    meta_lst = []
+    sv_true_lst0 = []
+    cph_sv_lst0 = []
+    pb_sv_lst0 = []
+    r_sv_lst0 = []
+    fig_l = []
+        
     strt = n*seed_addl
     end = strt + iters
+    with open("../output.txt", "w") as f:
+        print("Starting complex 1")
     for i in range(strt, end):
+        with open("../output.txt", "a") as f:
+            print(f"ITERATION************** {i}", file=f)
         print(f"ITERATION************** {i}")
-        seeds.append(i) # seeds should be the same for each setting
-        # only need pb_sv and pb_sv_ci
-        sv_true, sv_true_tst, pb_sv, pb_sv_tst, uniq_t, stats, stats_tst, intvs, intvs_tst = fn.sim_prm_1s(seed=i, n=n, scenario_=scenario, SPLIT_RULES=SPLIT_RULES, model_dict=model_dict, sampler_dict=sampler_dict)
+        # new simulation 3_2 is for the complex regression
+        # changes the decile selection
+        meta, sv_true, cph_sv, pb_sv, r_sv, sv_true_tst, cph_sv_tst, pb_sv_tst = fn.sim_3_2s(seed=i, n=n, scenario_=scenario, SPLIT_RULES=SPLIT_RULES, model_dict=model_dict, sampler_dict=sampler_dict)
+
+        uniq_t = meta["qnt_t"][0]
+        uniq_idx = meta["qnt_t"][1]
+
+        true_t = meta["true_t"]
+        assert((true_t[uniq_idx] == uniq_t).all)
+
+        sv_t_0 = sv_true["sv_true"][:,uniq_idx] # this is obs
+        sv_t_tst_0 = sv_true_tst["sv_true"][:,uniq_idx] # this is obs
+        cph_sv_0 = cph_sv # this is obs
+        cph_sv_tst_0 = cph_sv_tst
+        p_sv_0 = pb_sv # this is already the mean, this is obs
+        p_sv_tst_0 = pb_sv_tst
+        r_sv_0 = r_sv # this is already the mean, this is obs
+        assert(sv_t_0.shape == cph_sv_0.shape == p_sv_0.shape == r_sv_0.shape)    
+
+        # meta_lst.append(meta)
+        # sv_true_lst0.append(sv_t_0)
+        # cph_sv_lst0.append(cph_sv_0)
+        # pb_sv_lst0.append(p_sv_0)
+        # r_sv_lst0.append(r_sv_0)
+        figs = pltf.plots3_3(
+            sv_t_0, cph_sv_0, p_sv_0, r_sv_0, sv_t_tst_0, cph_sv_tst_0, p_sv_tst_0,
+            qs=1, qe=-3
+        )
+        tttl = scenario["type"]
+        namesss = f"../sv_data/{tttl}_{n}_{i}.png"
+        figs.savefig(namesss)
+
+        df = pd.DataFrame(
+            np.hstack(
+            [
+                sv_t_0[:,1:-1].flatten().reshape(-1,1),
+                cph_sv[:,1:-1].flatten().reshape(-1,1),
+                pb_sv[:,1:-1].flatten().reshape(-1,1),
+                r_sv[:,1:-1].flatten().reshape(-1,1),
+                sv_t_tst_0[:,1:-1].flatten().reshape(-1,1),
+                cph_sv_tst[:,1:-1].flatten().reshape(-1,1),
+                pb_sv_tst[:,1:-1].flatten().reshape(-1,1)
+            ]
+            ),
+            columns = ["sv_t", "cph","pb","r","sv_tst","cph_tst","pb_tst"]
+        )
+        tttl = scenario["type"]
+        namesss = f"../sv_data/{tttl}_{n}_{i}.csv"
+        df.to_csv(namesss)
 
 
-        cov_hdi.append(stats["cov_hdi"])
-        cov_ci.append(stats["cov_ci"])
-        iv_hdi.append(stats["iv_hdi"])
-        iv_ci.append(stats["iv_ci"])
-        rmse.append(stats["rmse"])
-        bias.append(stats["bias"])
+        # get metrics
+        def rsqr(true, est):
+            SSR = np.sum(np.power(true - est, 2))
+            SST = np.sum(np.power(true - np.mean(true), 2))
+            return 1-(SSR/SST)
 
-        cov_hdi_tst.append(stats_tst["cov_hdi"])
-        cov_ci_tst.append(stats_tst["cov_ci"])
-        iv_hdi_tst.append(stats_tst["iv_hdi"])
-        iv_ci_tst.append(stats_tst["iv_ci"])
-        rmse_tst.append(stats_tst["rmse"])
-        bias_tst.append(stats_tst["bias"])
+        def medabs(true, est):
+            mab = np.median(np.abs(true-est))
+            return mab
+
+        def msqr(true, est):
+            msqr = np.sqrt(np.mean(np.power(true-est,2)))
+            return msqr
         
+        qs,qe = 2,-4
+        c_rsqr = rsqr(sv_t_0[:,qs:qe], cph_sv_0[:,qs:qe])
+        p_rsqr = rsqr(sv_t_0[:,qs:qe], p_sv_0[:,qs:qe])
+        r_rsqr = rsqr(sv_t_0[:,qs:qe], r_sv_0[:,qs:qe])
+        c_tst_rsqr = rsqr(sv_t_tst_0[:,qs:qe], cph_sv_tst[:,qs:qe])
+        p_tst_rsqr = rsqr(sv_t_tst_0[:,qs:qe], p_sv_tst_0[:,qs:qe])
         
-        if i < strt + 2:
-            sv_truet = sv_true["sv_true"][:,(uniq_t-1).astype("int")]
-            sv_truet_tst = sv_true_tst["sv_true"][:,(uniq_t-1).astype("int")]
-            pb_svm = pb_sv["sv"].mean(0)
-            pb_svm_tst = pb_sv_tst["sv"].mean(0)
-            fig,ax = plt.subplots(1,4, figsize=(40,8))
-            for j in range(100):
-                if j == 0:
-                    ax[0].step(uniq_t, sv_truet[j,:], color="black", label = "true", alpha=0.1)
-                    ax[1].step(uniq_t, sv_truet[j,:], color="black", label= "true", alpha=0.1)
+        c_medabs = medabs(sv_t_0[:,qs:qe], cph_sv_0[:,qs:qe])
+        p_medabs = medabs(sv_t_0[:,qs:qe], p_sv_0[:,qs:qe])
+        r_medabs = medabs(sv_t_0[:,qs:qe], r_sv_0[:,qs:qe])
+        c_tst_medabs = medabs(sv_t_tst_0[:,qs:qe], cph_sv_tst[:,qs:qe])
+        p_tst_medabs = medabs(sv_t_tst_0[:,qs:qe], p_sv_tst_0[:,qs:qe])
 
-                    ax[0].step(uniq_t, pb_svm[j,:], color = "green", alpha=0.4, label="pred")
-                    ax[1].step(uniq_t, pb_svm[j,:], color = "blue", alpha=0.3, label = "pred")
+        c_msqr = msqr(sv_t_0[:,qs:qe], cph_sv_0[:,qs:qe])
+        p_msqr = msqr(sv_t_0[:,qs:qe], p_sv_0[:,qs:qe])
+        r_msqr = msqr(sv_t_0[:,qs:qe], r_sv_0[:,qs:qe])
+        c_tst_msqr = msqr(sv_t_tst_0[:,qs:qe], cph_sv_tst[:,qs:qe])
+        p_tst_msqr = msqr(sv_t_tst_0[:,qs:qe], p_sv_tst_0[:,qs:qe])
 
-                    ax[0].step(uniq_t, intvs[0][j, :, 0], color="lightgreen", alpha=0.1, label = "95 hdi")
-                    ax[0].step(uniq_t, intvs[0][j, :, 1], color= "lightgreen", alpha=0.1)
-                    
-                    ax[1].step(uniq_t, intvs[1][0, j, :], color="lightblue", alpha=0.1, label = "95 ci")
-                    ax[1].step(uniq_t, intvs[1][1, j, :], color= "lightblue", alpha=0.1)
-                    ax[0].legend()
-                    ax[1].legend()
+        c = {"q":(qs,qe), "r2":c_rsqr.tolist(), "mabs":c_medabs.tolist(), "rmse":c_msqr.tolist()}
+        p = {"q":(qs,qe), "r2":p_rsqr.tolist(), "mabs":p_medabs.tolist(), "rmse":p_msqr.tolist()}
+        r = {"q":(qs,qe), "r2":r_rsqr.tolist(), "mabs":r_medabs.tolist(), "rmse":r_msqr.tolist()}
+        c_tst = {"q":(qs,qe), "r2":c_tst_rsqr.tolist(), "mabs":c_tst_medabs.tolist(), "rmse":c_tst_msqr.tolist()}
+        p_tst = {"q":(qs,qe), "r2":p_tst_rsqr.tolist(), "mabs":p_tst_medabs.tolist(), "rmse":p_tst_msqr.tolist()}
 
-                    # tst
-                    ax[2].step(uniq_t, sv_truet_tst[j,:], color="black", label = "true", alpha=0.1)
-                    ax[3].step(uniq_t, sv_truet_tst[j,:], color="black", label= "true", alpha=0.1)
-
-                    ax[2].step(uniq_t, pb_svm_tst[j,:], color = "green", alpha=0.4, label="pred")
-                    ax[3].step(uniq_t, pb_svm_tst[j,:], color = "blue", alpha=0.3, label = "pred")
-
-                    ax[2].step(uniq_t, intvs_tst[0][j, :, 0], color="lightgreen", alpha=0.1, label = "95 hdi")
-                    ax[2].step(uniq_t, intvs_tst[0][j, :, 1], color= "lightgreen", alpha=0.1)
-                    
-                    ax[3].step(uniq_t, intvs_tst[1][0, j, :], color="lightblue", alpha=0.1, label = "95 ci")
-                    ax[3].step(uniq_t, intvs_tst[1][1, j, :], color= "lightblue", alpha=0.1)
-                    ax[2].legend()
-                    ax[3].legend()
-                else:
-                    ax[0].step(uniq_t, sv_truet[j,:], color="black", alpha=0.1)
-                    ax[1].step(uniq_t, sv_truet[j,:], color="black", alpha=0.1)
-
-                    ax[0].step(uniq_t, pb_svm[j,:], color = "green", alpha=0.4)
-                    ax[1].step(uniq_t, pb_svm[j,:], color = "blue", alpha=0.3)
-
-                    ax[0].step(uniq_t, intvs[0][j, :, 0], color="lightgreen", alpha=0.1)
-                    ax[0].step(uniq_t, intvs[0][j, :, 1], color= "lightgreen", alpha=0.1)
-                    
-                    ax[1].step(uniq_t, intvs[1][0, j, :], color="lightblue", alpha=0.1)
-                    ax[1].step(uniq_t, intvs[1][1, j, :], color= "lightblue", alpha=0.1)
-
-                    #tst
-                    ax[2].step(uniq_t, sv_truet_tst[j,:], color="black", alpha=0.1)
-                    ax[3].step(uniq_t, sv_truet_tst[j,:], color="black", alpha=0.1)
-
-                    ax[2].step(uniq_t, pb_svm_tst[j,:], color = "green", alpha=0.4)
-                    ax[3].step(uniq_t, pb_svm_tst[j,:], color = "blue", alpha=0.3)
-
-                    ax[2].step(uniq_t, intvs_tst[0][j, :, 0], color="lightgreen", alpha=0.1)
-                    ax[2].step(uniq_t, intvs_tst[0][j, :, 1], color= "lightgreen", alpha=0.1)
-                    
-                    ax[3].step(uniq_t, intvs_tst[1][0, j, :], color="lightblue", alpha=0.1)
-                    ax[3].step(uniq_t, intvs_tst[1][1, j, :], color= "lightblue", alpha=0.1)
-            # ttl = scenario["type"]
-            tune = sampler_dict["tune"]
-            draw = sampler_dict["draws"]
-            trees = model_dict["trees"]
-            namesss = f"../figs/prm2/prm_tune_{tune}_draw_{draw}_trees_{trees}_{i}.png"
-            fig.savefig(namesss)
-    return cov_hdi, cov_ci, iv_hdi, iv_ci, rmse, bias, cov_hdi_tst, cov_ci_tst, iv_hdi_tst, iv_ci_tst, rmse_tst, bias_tst, seeds
+        cens1 = meta["cens_perc"]
+        cens2 = meta["cens_perc2"]
+        # if plot_all:
+        #     fig = pltf.plots3(uniq_t, sv_t_0, cph_sv_0, p_sv_0, r_sv_0)
+        #     title = f"{scenario['type']}, n {n}"
+        #     fig.suptitle(title)
+        #     fig_l.append(fig)
+        #     if i < strt+10:
+        #         ttl = scenario["type"]
+        #         namesss = f"../figs/{ttl}_{i}.png"
+        #         fig.savefig(namesss)
     
+    # if not plot_all:
+    #     fig = pltf.plots3(meta, sv_t_0, cph_sv_0, p_sv_0, r_sv_0)
+    #     title = f"{scenario['type']}, n {n}"
+    #     fig.suptitle(title)
+    #     fig_l.append(fig)
+
+    # c,p,r = fn.get_metrics3(
+    #     sv_true_lst0,
+    #     cph_sv_lst0,
+    #     pb_sv_lst0,
+    #     r_sv_lst0,
+    # )
+    # cens1 = [m["cens_perc"] for m in meta_lst]
+    # print(f"censs {cens1}")
+    # cens2 = [m["cens_perc2"] for m in meta_lst]
+    # cens1 = np.array([m["cens_perc"] for m in meta_lst]).mean()
+    # cens2 = np.array([m["cens_perc2"] for m in meta_lst]).mean()
+    
+    return meta_lst, (strt, end), (cens1,cens2), c,p,r, c_tst, p_tst
+

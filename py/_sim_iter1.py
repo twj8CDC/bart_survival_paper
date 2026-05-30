@@ -45,9 +45,9 @@ def iter_simulation_1s(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict, s
     
     strt = n*seed_addl
     end = strt + iters
+    with open("../output.txt", "w") as f:
+        print("starting simple 1")
     for i in range(strt, end):
-        with open("../output.txt", "w") as f:
-            print("new")
         with open("../output.txt", "a") as f:
             # print("Hello, this is saved to a file!", file=f)
             print(f"ITERATION************** {i}", file=f)
@@ -142,11 +142,11 @@ def iter_simulation_2s(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict, s
 
     strt = n*seed_addl
     end = strt + iters
-    with open("../output_sim2.txt", "w") as f:
-        print("new")
+    with open("../output.txt", "w") as f:
+        print("Starting simple 2")
     for i in range(strt, end):
 
-        with open("../output_sim2.txt", "a") as f:
+        with open("../output.txt", "a") as f:
             print(f"ITERATION************** {i}", file=f)
         print(f"ITERATION************** {i}")
         odict = fn.sim_2s(i, n, scenario, SPLIT_RULES, model_dict, sampler_dict)

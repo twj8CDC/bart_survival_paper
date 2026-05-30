@@ -1,4 +1,4 @@
-.paper_venv/
+mlruns2/
 mlruns/
 */__pycache__/
 data/
