@@ -178,12 +178,12 @@ def get_hdi_ci_1(pb_sv):
     s1 = pb_sv["sv"].shape[0]
     s2 = pb_sv["sv"].shape[1]
     s3 = pb_sv["sv"].shape[2]
-    # hdi_pre = az.convert_to_dataset(pb_sv["sv"].reshape(1,s1,s2,s3))
+    hdi_pre = az.convert_to_dataset(pb_sv["sv"].reshape(1,s1,s2,s3))
     #low-high
-    # hdi_lh = az.hdi(hdi_pre, hdi_prob=.95).x.values
+    hdi_lh = az.hdi(hdi_pre, prob=.95).x.values
     # low-high
     ci_lh = np.quantile(pb_sv["sv"], [0.025, 0.975], 0)
-    return ci_lh, ci_lh
+    return hdi_lh, ci_lh
     
 def get_py_bart_surv(x_mat, event_dict, model_dict, sampler_dict):
     # y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
@@ -678,7 +678,7 @@ def get_hdi_ci(pb_sv):
     s3 = pb_sv["sv"].shape[2]
     hdi_pre = az.convert_to_dataset(pb_sv["sv"].reshape(1,s1,s2,s3))
     #low-high
-    hdi_lh = az.hdi(hdi_pre, hdi_prob=.95).x.values
+    hdi_lh = az.hdi(hdi_pre, prob=.95).x.values
     # low-high
     ci_lh = np.quantile(pb_sv["sv"], [0.025, 0.975], 0)
     return hdi_lh, ci_lh
@@ -847,7 +847,7 @@ def apply_metrics1(true0, est0, est_ci0, est_hdi0=None):
         cov1 = coverage(true0, est_ci0, calc=True)
         ivl1 = iv_length(est_ci0)
         # cov2 = coverage(true0, est_hdi0, calc=True) # quick fix to get rid of HDI
-        ivl2 = iv_length(est_ci0)
+        ivl2 = iv_length(est_hdi0)
         return {"rmse":rmse0, 
                 "bias":bias0, 
                 "cov_ci":cov1, 

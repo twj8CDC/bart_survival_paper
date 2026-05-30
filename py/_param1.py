@@ -1,10 +1,10 @@
-EXP_NAME = "simple_test_cov"
+EXP_NAME = "simple_updated_bart_1000"
 RUN_NAME = "simple_1"
 # RUN_NAME_cmplx3 = "cmplx_3_400"
 
 ###########################
 # ITERATIONS
-ITERS = 100
+ITERS = 1000
 SEED_ADDL=99
 N = [400]
 PLOT_ALL=True
@@ -24,7 +24,7 @@ SAMPLER_DICT1 = {
 	"cores": 4,
 	"chains": 4,
 	"compute_convergence_checks": False,
-    "k":1.5
+    "k":2
 }
 
 
@@ -38,14 +38,11 @@ MODEL_DICT2 = {"trees": 50,
 	"split_rules": SPLIT_RULES2
 }
 SAMPLER_DICT2 = {
-	"draws": 1000,
-	"tune": 1000,
+	"draws": 500,
+	"tune": 500,
 	"cores": 4,
 	"chains": 4,
 	"compute_convergence_checks": False,
     "k":2,
-    "update_fraction":1,
-    "step_size":.1,
-    "thin":10
 }
 
