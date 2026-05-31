@@ -520,7 +520,6 @@ def get_py_bart_surv3_2(x_mat, event_dict, model_dict, sampler_dict, test):
     # y_sk = sb.get_y_sklearn(status = event_dict["status"], t_event=event_dict["t_event"])
     # trn = sb.get_surv_pre_train(y_sk = y_sk, x_sk = x_mat, weight=None)
     # post_test = sb.get_posterior_test(y_sk = y_sk, x_test = x_mat)
-
     # return trn, post_test, small_post_x, small_coords
     BSM = sb.BartSurvModel(model_config=model_dict, sampler_config=sampler_dict)
     # fit with just the time column
@@ -533,12 +532,13 @@ def get_py_bart_surv3_2(x_mat, event_dict, model_dict, sampler_dict, test):
     # post_test_test = sb.get_posterior_test(y_sk = , x_test = test) # old
     post_test_test = sb.get_posterior_test(y_status=event_dict["status"], y_time=event_dict["t_event"], x=test)
     post_test = BSM.sample_posterior_predictive(X_pred=post_test_test["post_x"], coords=post_test_test["coords"])
-    sv_prob_test = sb.get_sv_prob(post_test, post_test["coords"])
+    sv_prob_test = sb.get_sv_prob(post_test, post_test_test["coords"])
 
     
     del BSM
     childs = mp.active_children()
     for child in childs:
+        print("remove child proceess")
         child.kill()
     return sv_prob, uniq_t, sv_prob_test
 

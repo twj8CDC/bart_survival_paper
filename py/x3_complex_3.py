@@ -2,15 +2,13 @@ import sys
 sys.path.append("../py/")
 
 import numpy as np
-import subprocess
-import importlib
 import mlflow as ml
 
-import _conditions2 as cn
+import _conditions3 as cn
 import _functions1 as fn
-import _sim_iter2 as si
+import _sim_iter3 as si
 import _loggers1 as lo
-import _param2 as prm
+import _param3 as prm
 import time
 
 # TODO  add in the figures
@@ -32,7 +30,7 @@ def main():
     
     ##############################
     # start run
-    ml.start_run(run_name=prm.RUN_NAME_cmplx3)
+    ml.start_run(run_name=prm.RUN_NAME)
     ml.log_dict({"iters":prm.ITERS_cmplx3}, "iters.json")
     ml.log_dict({"seed_addl":prm.SEED_ADDL}, "seed_addl.json")
 

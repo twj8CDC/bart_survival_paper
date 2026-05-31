@@ -1,12 +1,10 @@
 import matplotlib.pyplot as plt
 import importlib
 import _functions1 as fn
-import _conditions1 as cn
 import _plot_fx as pltf
 plt.ioff()
 importlib.reload(pltf)
 importlib.reload(fn)
-importlib.reload(cn)
 
 # complex regressions
 def iter_simulation_complex12(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict, sampler_dict, plot_all):

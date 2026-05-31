@@ -1,3 +1,13 @@
+import matplotlib.pyplot as plt
+import importlib
+import _functions1 as fn
+import _plot_fx as pltf
+plt.ioff()
+importlib.reload(pltf)
+importlib.reload(fn)
+import pandas as pd
+import numpy as np
+
 # this is for continuous complex
 def iter_simulation_complex3(iters, n, seed_addl, scenario, SPLIT_RULES, model_dict, sampler_dict, plot_all):
     """_summary_
@@ -37,8 +47,9 @@ def iter_simulation_complex3(iters, n, seed_addl, scenario, SPLIT_RULES, model_d
 
         true_t = meta["true_t"]
         assert((true_t[uniq_idx] == uniq_t).all)
-
+        print(true_t)
         sv_t_0 = sv_true["sv_true"][:,uniq_idx] # this is obs
+        print(uniq_idx)
         sv_t_tst_0 = sv_true_tst["sv_true"][:,uniq_idx] # this is obs
         cph_sv_0 = cph_sv # this is obs
         cph_sv_tst_0 = cph_sv_tst
