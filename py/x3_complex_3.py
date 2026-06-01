@@ -18,7 +18,7 @@ import time
 def main():
     ##########################
     # set up 
-    ml.set_tracking_uri("../mlruns")
+    ml.set_tracking_uri("../mlruns3")
     exp_name = prm.EXP_NAME
     if ml.get_experiment_by_name(exp_name) == None:
         exp_id = ml.create_experiment(exp_name)
@@ -38,6 +38,7 @@ def main():
     for N in prm.N_cmplx3:
     # for N in [200]:
         # complex 3
+        print(N)
         if True:
             strt_time = time.time()
             meta, seeds, cens,c,p,r, c_tst, p_tst = si.iter_simulation_complex3(
@@ -50,6 +51,7 @@ def main():
                 sampler_dict=prm.SAMPLER_DICT3,
                 plot_all=prm.PLOT_ALL
             )
+            print("here1")
             lo.log_params("cmplx3", N, cn.complex_3, prm.MODEL_DICT3, prm.SAMPLER_DICT3, seeds)
             lo.log_mets3("cmplx3", N, cens, c, p, r, c_tst, p_tst)
 
@@ -60,7 +62,7 @@ def main():
             #             lo.log_figures(f"cmplx_3_{f}", N, fig[f])
             # else:
             #     lo.log_figures("cmplx_3",N,fig[0])
-
+            print("here")
             end_time = time.time()-strt_time
             tname = f"cmplx_3_time_{N}.json"
             ml.log_dict({"time":end_time}, tname)

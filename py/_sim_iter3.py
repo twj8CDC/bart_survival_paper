@@ -47,9 +47,7 @@ def iter_simulation_complex3(iters, n, seed_addl, scenario, SPLIT_RULES, model_d
 
         true_t = meta["true_t"]
         assert((true_t[uniq_idx] == uniq_t).all)
-        print(true_t)
         sv_t_0 = sv_true["sv_true"][:,uniq_idx] # this is obs
-        print(uniq_idx)
         sv_t_tst_0 = sv_true_tst["sv_true"][:,uniq_idx] # this is obs
         cph_sv_0 = cph_sv # this is obs
         cph_sv_tst_0 = cph_sv_tst
@@ -70,24 +68,35 @@ def iter_simulation_complex3(iters, n, seed_addl, scenario, SPLIT_RULES, model_d
         tttl = scenario["type"]
         namesss = f"../sv_data/{tttl}_{n}_{i}.png"
         figs.savefig(namesss)
+        print(r_sv_0)
+        print(r_sv.shape)
+        print(sv_t_0.shape)
 
-        df = pd.DataFrame(
+        df1 = pd.DataFrame(
             np.hstack(
             [
                 sv_t_0[:,1:-1].flatten().reshape(-1,1),
                 cph_sv[:,1:-1].flatten().reshape(-1,1),
                 pb_sv[:,1:-1].flatten().reshape(-1,1),
-                r_sv[:,1:-1].flatten().reshape(-1,1),
+                r_sv_0[:,1:-1].flatten().reshape(-1,1)
+            ]),
+            columns = ["sv_t", "cph","pb","r"]
+        )
+        df2 = pd.DataFrame(
+            np.hstack([
+                ## nneed to split these into their own dataframe, or atleast their own hstac
                 sv_t_tst_0[:,1:-1].flatten().reshape(-1,1),
                 cph_sv_tst[:,1:-1].flatten().reshape(-1,1),
                 pb_sv_tst[:,1:-1].flatten().reshape(-1,1)
-            ]
-            ),
-            columns = ["sv_t", "cph","pb","r","sv_tst","cph_tst","pb_tst"]
+            
+            ]),
+            columns = ["sv_tst","cph_tst","pb_tst"]
         )
         tttl = scenario["type"]
-        namesss = f"../sv_data/{tttl}_{n}_{i}.csv"
-        df.to_csv(namesss)
+        namesss = f"../sv_data/trn_{tttl}_{n}_{i}.csv"
+        df1.to_csv(namesss)
+        namesss = f"../sv_data/tst_{tttl}_{n}_{i}.csv"
+        df2.to_csv(namesss)
 
 
         # get metrics

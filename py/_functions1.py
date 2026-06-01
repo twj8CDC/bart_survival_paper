@@ -577,21 +577,27 @@ def sim_3_2s(seed, n, scenario_, SPLIT_RULES, model_dict, sampler_dict):
     while good_sim:
         # generate survival simulation
         scenario, x_mat, event_dict, sv_true, sv_scale_true = get_sim(rng, n, **scenario_)
+        # test
+        scenario_t, x_mat_t, event_dict_t, sv_true_t, sv_scale_true_t = get_sim(rng, 400, **scenario_) # try keepin n to 400 in the test set
+
+        
         cens_perc = event_dict["status"][event_dict["status"] == 0].shape[0]/event_dict["status"].shape[0]
         
-        # change the quantiles to be created from time
-        # print(range(int(event_dict["t_event"].max())))
-        # range(event_dict["t_event"].max())
-        qnt_t = np.ceil(np.quantile(range(int(event_dict["t_event"].max())), [.05, 0.1,.2, .3, .4, .5, .6,.7,.8, .9,1])).astype("int")
-        event_dict2 = get_quant_events(qnt_t=qnt_t, event=event_dict)
-
-        # get true mean
-        # sv_true_mean = sv_true["sv_true"].mean(0)
-        # get time quants
-        # qnt_t = get_quant_times(sv_true_c=sv_true_mean, sv_true= sv_true, quant=[.95, .9, .75, .5, .25, .1, .01]).flatten()
-        # reset simulated event times to quant times
-        # event_dict2 = get_quant_events(qnt_t=qnt_t, event=event_dict)
         
+        # get min of max event_dict
+        trn_time = event_dict["t_event"].max()
+        tst_time = event_dict_t["t_event"].max()
+        min_max_time = min(trn_time, tst_time)
+        print(min_max_time)
+        # print(trn_time, tst_time)
+        
+
+        qnt_t = np.ceil(np.quantile(range(int(min_max_time)), [.05, 0.1,.2, .3, .4, .5, .6,.7,.8, .9,1])).astype("int")
+        print(qnt_t)
+        
+        event_dict2 = get_quant_events(qnt_t=qnt_t, event=event_dict)
+        cens_perc2 = event_dict2["status"][event_dict2["status"] == 0].shape[0]/event_dict2["status"].shape[0]        
+
         # check that the qnt times and simulation are okay
         blck += 1
         if np.all(qnt_t == np.unique(event_dict2["t_event"])):
@@ -607,12 +613,12 @@ def sim_3_2s(seed, n, scenario_, SPLIT_RULES, model_dict, sampler_dict):
     
     # assert False
     # get the test set, this will be a new set since rng is reused 
-    scenario_t, x_mat_t, event_dict_t, sv_true_t, sv_scale_true_t = get_sim(rng, 400, **scenario_) # try keepin n to 400 in the test set
+    
     # scenario_t, x_mat_t, event_dict_t, sv_true_t, sv_scale_true_t = get_sim(rng, n, **scenario_) #old 
 
     # return x_mat, x_mat2
     # get the unique x_test
-    cens_perc2 = event_dict2["status"][event_dict2["status"] == 0].shape[0]/event_dict2["status"].shape[0]        
+    
     
     # return x_mat, event_dict, event_dict2, sv_true, cens_perc, cens_perc2
 

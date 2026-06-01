@@ -7,7 +7,7 @@ RUN_NAME = "cmplx_3_test"
 ITERS = 1000
 SEED_ADDL=99
 N_cmplx3 = [400, 1000, 4000]
-ITERS_cmplx3 = 3
+ITERS_cmplx3 = 2
 PLOT_ALL=True
 ###########################
 
