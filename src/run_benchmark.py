@@ -503,6 +503,7 @@ def main():
     parser.add_argument("--preset", choices=["fast", "standard", "production", "prod_tune250", "high_precision"], default="standard", help="Model hyperparameter preset")
     parser.add_argument("--seed-offset", type=int, default=99, help="Additive seed offset for reproducibility")
     parser.add_argument("--skip-r", action="store_true", help="Skip live Rscript BART execution (use historical baseline)")
+    parser.add_argument("--all-n", action="store_true", help="Run all default sample sizes defined for each scenario")
     parser.add_argument("--experiment-name", type=str, default="validation_run_v2", help="Folder name for tracking outputs")
     
     args = parser.parse_args()
@@ -519,6 +520,7 @@ def main():
     print(f"Scenarios:    {target_scenarios}")
     print(f"Preset:       {args.preset}")
     print(f"Iterations:   {args.iters}")
+    print(f"All N Tiers:  {args.all_n}")
     print(f"Skip R-BART:  {args.skip_r}")
     print(f"Output Dir:   {tracker.base_dir}")
     print("#" * 75 + "\n")
@@ -527,7 +529,9 @@ def main():
     
     for scen_id in target_scenarios:
         scen_cfg = SCENARIOS[scen_id]
-        if args.n_samples:
+        if args.all_n:
+            sample_sizes = scen_cfg["default_sample_sizes"]
+        elif args.n_samples:
             sample_sizes = args.n_samples
         else:
             sample_sizes = [scen_cfg["default_sample_sizes"][0]] # run first sample size by default for fast verification
