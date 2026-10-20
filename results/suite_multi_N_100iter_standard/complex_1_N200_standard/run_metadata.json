@@ -1,0 +1,92 @@
+{
+  "scenario_id": "complex_1",
+  "scenario_name": "Complex Multivariate Binary (Proportional Hazards, 20% Censoring)",
+  "category": "complex_binary",
+  "n": 200,
+  "preset": "standard",
+  "scenario_config": {
+    "name": "Complex Multivariate Binary (Proportional Hazards, 20% Censoring)",
+    "category": "complex_binary",
+    "type": "Complex, binary, prop, 20% cens",
+    "x_vars": 9,
+    "VAR_CLASS": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "VAR_PROB": [
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "scale_f": "np.exp(3 + 0.1*(x_mat[:,0] + x_mat[:,1] + x_mat[:,2] + x_mat[:,3] + x_mat[:,4] + x_mat[:,5]) + x_mat[:,6])",
+    "shape_f": "2",
+    "cens_scale": 3.5,
+    "eos": 180,
+    "quantiles": [
+      0.95,
+      0.9,
+      0.75,
+      0.5,
+      0.25,
+      0.1,
+      0.01
+    ],
+    "default_sample_sizes": [
+      200,
+      400
+    ],
+    "causal_contrasts": [
+      {
+        "variable": 0,
+        "name": "x0",
+        "type": "binary",
+        "values": [
+          0,
+          1
+        ],
+        "true_hr": 0.8187307530779818
+      },
+      {
+        "variable": 6,
+        "name": "x6",
+        "type": "binary",
+        "values": [
+          0,
+          1
+        ],
+        "true_hr": 0.1353352832366127
+      }
+    ]
+  },
+  "model_config": {
+    "trees": 50,
+    "draws": 1000,
+    "tune": 250,
+    "chains": 4,
+    "thin": 4,
+    "thin_idata": false,
+    "update_fraction": 1.0,
+    "use_sparsity": false,
+    "split_method": "empirical",
+    "max_cutpoints": 512,
+    "min_node_size": 5,
+    "k": 2.0
+  },
+  "start_time": "2026-10-19T14:45:35.275359",
+  "status": "COMPLETED",
+  "completion_time": "2026-10-19T14:53:50.508182",
+  "duration_seconds": 3820.569906949997
+}

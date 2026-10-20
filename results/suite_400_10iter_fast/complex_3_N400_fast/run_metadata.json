@@ -1,0 +1,103 @@
+{
+  "scenario_id": "complex_3",
+  "scenario_name": "Complex Continuous (Nonlinear Interactions, 20% Censoring)",
+  "category": "complex_continuous",
+  "n": 400,
+  "preset": "fast",
+  "scenario_config": {
+    "name": "Complex Continuous (Nonlinear Interactions, 20% Censoring)",
+    "category": "complex_continuous",
+    "type": "Complex, continuous, 20% cens",
+    "x_vars": 10,
+    "VAR_CLASS": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "VAR_PROB": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "scale_f": "np.exp(3 + 0.5*np.sin(np.pi * x_mat[:,0] * x_mat[:,1]) + np.power((x_mat[:,2]-0.5), 2) + 0.5* x_mat[:,3] + 0.25 * x_mat[:,4])",
+    "shape_f": "2",
+    "cens_scale": 3.7,
+    "eos": 180,
+    "time_quantiles": [
+      0.05,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "default_sample_sizes": [
+      400,
+      1000,
+      4000
+    ],
+    "test_sample_size": 400,
+    "causal_contrasts": [
+      {
+        "variable": 0,
+        "name": "x0",
+        "type": "continuous_shift",
+        "delta": 0.2
+      },
+      {
+        "variable": 2,
+        "name": "x2",
+        "type": "contrast",
+        "values": [
+          0.1,
+          0.5
+        ],
+        "true_hr": 1.3771277643359572
+      },
+      {
+        "variable": 4,
+        "name": "x4",
+        "type": "continuous_shift",
+        "delta": 0.2,
+        "true_hr": 0.9048374180359595
+      }
+    ]
+  },
+  "model_config": {
+    "trees": 25,
+    "draws": 500,
+    "tune": 250,
+    "chains": 4,
+    "thin": 5,
+    "thin_idata": false,
+    "update_fraction": 1.0,
+    "use_sparsity": false,
+    "split_method": "empirical",
+    "max_cutpoints": 512,
+    "min_node_size": 5,
+    "k": 2.0
+  },
+  "start_time": "2026-10-19T07:48:59.209736",
+  "status": "COMPLETED",
+  "completion_time": "2026-10-19T07:49:31.699173",
+  "duration_seconds": 188.7160828113556
+}

@@ -1,4 +1,42 @@
-.paper_venv/
-mlruns/
+# Byte-compiled / optimized / DLL files
+__pycache__/
 */__pycache__/
+*.py[cod]
+*$py.class
+
+# OS artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Temporary / lock files
+results/~$*
+*.tmp
+*.swp
+
+# MLflow and tracking artifacts
+mlruns/
+mlruns2/
+mlruns3/
+
+# Scratch & test run directories
+results/test_*
+results/suite_5iter_fast/
+
+# Editor directories
+.vscode/
+.idea/
+
+# Large binary / docs
+docs/*.docx
 data/
+sv_data/
+figs/

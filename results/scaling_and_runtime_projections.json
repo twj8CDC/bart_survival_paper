@@ -1,0 +1,122 @@
+[
+  {
+    "scenario": "Simple 1_1",
+    "type": "1-Sample (20% Cens)",
+    "n": 200,
+    "pbart_seconds": 3.32,
+    "rbart_seconds": 2.28,
+    "speedup": 0.69
+  },
+  {
+    "scenario": "Simple 1_1",
+    "type": "1-Sample (20% Cens)",
+    "n": 400,
+    "pbart_seconds": 3.5,
+    "rbart_seconds": 3.8,
+    "speedup": 1.09
+  },
+  {
+    "scenario": "Simple 1_2",
+    "type": "1-Sample (50% Cens)",
+    "n": 200,
+    "pbart_seconds": 3.32,
+    "rbart_seconds": 2.28,
+    "speedup": 0.69
+  },
+  {
+    "scenario": "Simple 1_2",
+    "type": "1-Sample (50% Cens)",
+    "n": 400,
+    "pbart_seconds": 3.5,
+    "rbart_seconds": 3.8,
+    "speedup": 1.09
+  },
+  {
+    "scenario": "Simple 2_1",
+    "type": "2-Sample (20% Cens)",
+    "n": 200,
+    "pbart_seconds": 3.3,
+    "rbart_seconds": 2.4,
+    "speedup": 0.73
+  },
+  {
+    "scenario": "Simple 2_1",
+    "type": "2-Sample (20% Cens)",
+    "n": 400,
+    "pbart_seconds": 3.74,
+    "rbart_seconds": 3.96,
+    "speedup": 1.06
+  },
+  {
+    "scenario": "Simple 2_2",
+    "type": "2-Sample (50% Cens)",
+    "n": 200,
+    "pbart_seconds": 3.3,
+    "rbart_seconds": 2.4,
+    "speedup": 0.73
+  },
+  {
+    "scenario": "Simple 2_2",
+    "type": "2-Sample (50% Cens)",
+    "n": 400,
+    "pbart_seconds": 3.74,
+    "rbart_seconds": 3.96,
+    "speedup": 1.06
+  },
+  {
+    "scenario": "Complex 1",
+    "type": "10-Covariate Binary (PH)",
+    "n": 200,
+    "pbart_seconds": 2.36,
+    "rbart_seconds": 4.09,
+    "speedup": 1.73
+  },
+  {
+    "scenario": "Complex 1",
+    "type": "10-Covariate Binary (PH)",
+    "n": 400,
+    "pbart_seconds": 3.9,
+    "rbart_seconds": 7.5,
+    "speedup": 1.92
+  },
+  {
+    "scenario": "Complex 2",
+    "type": "10-Covariate Binary (Non-PH)",
+    "n": 200,
+    "pbart_seconds": 2.36,
+    "rbart_seconds": 4.09,
+    "speedup": 1.73
+  },
+  {
+    "scenario": "Complex 2",
+    "type": "10-Covariate Binary (Non-PH)",
+    "n": 400,
+    "pbart_seconds": 3.87,
+    "rbart_seconds": 7.49,
+    "speedup": 1.94
+  },
+  {
+    "scenario": "Complex 3",
+    "type": "Continuous Nonlinear + Holdout",
+    "n": 400,
+    "pbart_seconds": 4.5,
+    "rbart_seconds": 9.84,
+    "speedup": 2.19
+  },
+  {
+    "scenario": "Complex 3",
+    "type": "Continuous Nonlinear + Holdout",
+    "n": 1000,
+    "pbart_seconds": 8.49,
+    "rbart_seconds": 20.38,
+    "speedup": 2.4
+  },
+  {
+    "scenario": "Complex 3",
+    "type": "Continuous Nonlinear + Holdout",
+    "n": 4000,
+    "pbart_seconds": 19.46,
+    "rbart_seconds": 88.11,
+    "speedup": 4.53
+  }
+]

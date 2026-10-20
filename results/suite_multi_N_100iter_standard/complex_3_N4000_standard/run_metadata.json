@@ -1,0 +1,104 @@
+{
+  "scenario_id": "complex_3",
+  "scenario_name": "Complex Multivariable Regression (Nonlinear Interactions & Non-Proportional Shape)",
+  "category": "complex_continuous",
+  "n": 4000,
+  "preset": "standard",
+  "scenario_config": {
+    "name": "Complex Multivariable Regression (Nonlinear Interactions & Non-Proportional Shape)",
+    "category": "complex_continuous",
+    "type": "Complex, continuous, 20% cens",
+    "x_vars": 10,
+    "VAR_CLASS": [
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "VAR_PROB": [
+      0.5,
+      0.5,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "scale_f": "50 + 100*x_mat[:,0] - 100*x_mat[:,1]*x_mat[:,0] + 10*x_mat[:,2] + 20*np.power(x_mat[:,3],2) + 20 * x_mat[:,3] * x_mat[:,4]",
+    "shape_f": "1 + 2*x_mat[:,0] + 1*x_mat[:,1]*x_mat[:,0] + .1*x_mat[:,1]*np.power(x_mat[:,4],2)",
+    "cens_scale": 2.5,
+    "eos": 180,
+    "time_quantiles": [
+      0.05,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "default_sample_sizes": [
+      400,
+      1000,
+      4000
+    ],
+    "test_sample_size": 400,
+    "causal_contrasts": [
+      {
+        "variable": 0,
+        "name": "x0",
+        "type": "binary",
+        "values": [
+          0,
+          1
+        ]
+      },
+      {
+        "variable": 1,
+        "name": "x1",
+        "type": "binary",
+        "values": [
+          0,
+          1
+        ]
+      },
+      {
+        "variable": 3,
+        "name": "x3",
+        "type": "continuous_shift",
+        "delta": 0.2
+      }
+    ]
+  },
+  "model_config": {
+    "trees": 50,
+    "draws": 1000,
+    "tune": 250,
+    "chains": 4,
+    "thin": 4,
+    "thin_idata": false,
+    "update_fraction": 1.0,
+    "use_sparsity": false,
+    "split_method": "empirical",
+    "max_cutpoints": 512,
+    "min_node_size": 5,
+    "k": 2.0
+  },
+  "start_time": "2026-10-20T10:34:23.481658",
+  "status": "COMPLETED",
+  "completion_time": "2026-10-20T10:58:49.924605",
+  "duration_seconds": 1991.7887091636658
+}
