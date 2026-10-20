@@ -67,25 +67,29 @@ def load_new_benchmark_data(experiment_name="suite_400_og_comparison"):
         with open(rep_file) as f:
             reps = json.load(f)
             
-        # Parse into per-scenario, per-model arrays
+        # Parse into per-scenario, per-model arrays (both pooled and per-N)
         scen_id = reps[0].get("scenario_id")
         for r in reps:
             m = r.get("model")
-            key_base = f"{scen_id}_{m}"
-            if "rmse_per_interval" in r and r["rmse_per_interval"] is not None:
-                new_data.setdefault(f"{key_base}_rmse", []).append(r["rmse_per_interval"])
-            if "bias_per_interval" in r and r["bias_per_interval"] is not None:
-                new_data.setdefault(f"{key_base}_bias", []).append(r["bias_per_interval"])
-            if "test_rmse_per_interval" in r and r["test_rmse_per_interval"] is not None:
-                new_data.setdefault(f"{key_base}_test_rmse", []).append(r["test_rmse_per_interval"])
-            if "test_bias_per_interval" in r and r["test_bias_per_interval"] is not None:
-                new_data.setdefault(f"{key_base}_test_bias", []).append(r["test_bias_per_interval"])
-            if "coverage" in r and r["coverage"] is not None:
-                new_data.setdefault(f"{key_base}_coverage", []).append(r["coverage"])
-            if "rmse" in r and r["rmse"] is not None:
-                new_data.setdefault(f"{key_base}_scalar_rmse", []).append(r["rmse"])
-            if "bias" in r and r["bias"] is not None:
-                new_data.setdefault(f"{key_base}_scalar_bias", []).append(r["bias"])
+            n_val = r.get("n")
+            keys = [f"{scen_id}_{m}"]
+            if n_val is not None:
+                keys.append(f"{scen_id}_N{n_val}_{m}")
+            for key_base in keys:
+                if "rmse_per_interval" in r and r["rmse_per_interval"] is not None:
+                    new_data.setdefault(f"{key_base}_rmse", []).append(r["rmse_per_interval"])
+                if "bias_per_interval" in r and r["bias_per_interval"] is not None:
+                    new_data.setdefault(f"{key_base}_bias", []).append(r["bias_per_interval"])
+                if "test_rmse_per_interval" in r and r["test_rmse_per_interval"] is not None:
+                    new_data.setdefault(f"{key_base}_test_rmse", []).append(r["test_rmse_per_interval"])
+                if "test_bias_per_interval" in r and r["test_bias_per_interval"] is not None:
+                    new_data.setdefault(f"{key_base}_test_bias", []).append(r["test_bias_per_interval"])
+                if "coverage" in r and r["coverage"] is not None:
+                    new_data.setdefault(f"{key_base}_coverage", []).append(r["coverage"])
+                if "rmse" in r and r["rmse"] is not None:
+                    new_data.setdefault(f"{key_base}_scalar_rmse", []).append(r["rmse"])
+                if "bias" in r and r["bias"] is not None:
+                    new_data.setdefault(f"{key_base}_scalar_bias", []).append(r["bias"])
                 
     for k in new_data:
         new_data[k] = np.array(new_data[k])
@@ -787,9 +791,13 @@ def recreate_fig3_complex3_new_only(new_data):
     
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 7), dpi=300)
     
-    has_p = "complex_3_pbart_test_rmse" in new_data and len(new_data["complex_3_pbart_test_rmse"]) > 0
-    has_r = "complex_3_rbart_test_rmse" in new_data and len(new_data["complex_3_rbart_test_rmse"]) > 0
-    has_c = "complex_3_coxph_test_rmse" in new_data and len(new_data["complex_3_coxph_test_rmse"]) > 0
+    p_key = "complex_3_N400_pbart" if "complex_3_N400_pbart_test_rmse" in new_data else "complex_3_pbart"
+    r_key = "complex_3_N400_rbart" if "complex_3_N400_rbart_test_rmse" in new_data else "complex_3_rbart"
+    c_key = "complex_3_N400_coxph" if "complex_3_N400_coxph_test_rmse" in new_data else "complex_3_coxph"
+
+    has_p = f"{p_key}_test_rmse" in new_data and len(new_data[f"{p_key}_test_rmse"]) > 0
+    has_r = f"{r_key}_test_rmse" in new_data and len(new_data[f"{r_key}_test_rmse"]) > 0
+    has_c = f"{c_key}_test_rmse" in new_data and len(new_data[f"{c_key}_test_rmse"]) > 0
     
     # -------------------- PANEL 1: Hold-out RMSE --------------------
     ax = axes[0]
@@ -798,7 +806,7 @@ def recreate_fig3_complex3_new_only(new_data):
         col_idx = decile_indices[d_val]
         
         if has_p:
-            vals_p = new_data["complex_3_pbart_test_rmse"][:, col_idx]
+            vals_p = new_data[f"{p_key}_test_rmse"][:, col_idx]
             ax.boxplot(
                 vals_p, positions=[pos_base + offsets[0]], widths=widths, patch_artist=True,
                 boxprops={"facecolor": "#111111", "alpha": 1.0},
@@ -809,7 +817,7 @@ def recreate_fig3_complex3_new_only(new_data):
                 label="p-BART" if d_idx == 0 else None
             )
         if has_r:
-            vals_r = new_data["complex_3_rbart_test_rmse"][:, col_idx]
+            vals_r = new_data[f"{r_key}_test_rmse"][:, col_idx]
             ax.boxplot(
                 vals_r, positions=[pos_base + offsets[1]], widths=widths, patch_artist=True,
                 boxprops={"facecolor": "#777777", "alpha": 0.70},
@@ -820,7 +828,7 @@ def recreate_fig3_complex3_new_only(new_data):
                 label="r-BART" if d_idx == 0 else None
             )
         if has_c:
-            vals_c = new_data["complex_3_coxph_test_rmse"][:, col_idx]
+            vals_c = new_data[f"{c_key}_test_rmse"][:, col_idx]
             ax.boxplot(
                 vals_c, positions=[pos_base + offsets[2]], widths=widths, patch_artist=True,
                 boxprops={"facecolor": "#cccccc", "alpha": 0.50},
@@ -847,7 +855,7 @@ def recreate_fig3_complex3_new_only(new_data):
         col_idx = decile_indices[d_val]
         
         if has_p:
-            vals_p = new_data["complex_3_pbart_test_bias"][:, col_idx]
+            vals_p = new_data[f"{p_key}_test_bias"][:, col_idx]
             ax.boxplot(
                 vals_p, positions=[pos_base + offsets[0]], widths=widths, patch_artist=True,
                 boxprops={"facecolor": "#111111", "alpha": 1.0},
@@ -858,7 +866,7 @@ def recreate_fig3_complex3_new_only(new_data):
                 label="p-BART" if d_idx == 0 else None
             )
         if has_r:
-            vals_r = new_data["complex_3_rbart_test_bias"][:, col_idx]
+            vals_r = new_data[f"{r_key}_test_bias"][:, col_idx]
             ax.boxplot(
                 vals_r, positions=[pos_base + offsets[1]], widths=widths, patch_artist=True,
                 boxprops={"facecolor": "#777777", "alpha": 0.70},
@@ -869,7 +877,7 @@ def recreate_fig3_complex3_new_only(new_data):
                 label="r-BART" if d_idx == 0 else None
             )
         if has_c:
-            vals_c = new_data["complex_3_coxph_test_bias"][:, col_idx]
+            vals_c = new_data[f"{c_key}_test_bias"][:, col_idx]
             ax.boxplot(
                 vals_c, positions=[pos_base + offsets[2]], widths=widths, patch_artist=True,
                 boxprops={"facecolor": "#cccccc", "alpha": 0.50},

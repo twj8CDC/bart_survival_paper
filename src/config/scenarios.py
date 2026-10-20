@@ -126,29 +126,26 @@ SCENARIOS: Dict[str, Dict[str, Any]] = {
     },
     
     # -------------------------------------------------------------
-    # Scenario 5: Complex Continuous (Non-Linear Interactions + Out-of-Sample Test)
+    # Scenario 5: Complex Continuous (Nonlinear Interactions & Non-Proportional Shape)
     # -------------------------------------------------------------
     "complex_3": {
-        "name": "Complex Continuous (Nonlinear Interactions, 20% Censoring)",
+        "name": "Complex Multivariable Regression (Nonlinear Interactions & Non-Proportional Shape)",
         "category": "complex_continuous",
         "type": "Complex, continuous, 20% cens",
         "x_vars": 10,
-        "VAR_CLASS": [1] * 10,
-        "VAR_PROB": [None] * 10,
-        "scale_f": "np.exp(3 + 0.5*np.sin(np.pi * x_mat[:,0] * x_mat[:,1]) + np.power((x_mat[:,2]-0.5), 2) + 0.5* x_mat[:,3] + 0.25 * x_mat[:,4])",
-        "shape_f": "2",
-        "cens_scale": 3.7,
+        "VAR_CLASS": [2, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+        "VAR_PROB": [0.5, 0.5, None, None, None, None, None, None, None, None],
+        "scale_f": "50 + 100*x_mat[:,0] - 100*x_mat[:,1]*x_mat[:,0] + 10*x_mat[:,2] + 20*np.power(x_mat[:,3],2) + 20 * x_mat[:,3] * x_mat[:,4]",
+        "shape_f": "1 + 2*x_mat[:,0] + 1*x_mat[:,1]*x_mat[:,0] + .1*x_mat[:,1]*np.power(x_mat[:,4],2)",
+        "cens_scale": 2.5,
         "eos": 180,
         "time_quantiles": [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00],
         "default_sample_sizes": [400, 1000, 4000],
         "test_sample_size": 400,
         "causal_contrasts": [
-            # x0 has interaction with x1: test population shift delta=+0.20
-            {"variable": 0, "name": "x0", "type": "continuous_shift", "delta": 0.20},
-            # x2 has U-shaped non-linear effect: contrast nadir 0.50 vs endpoint 0.10, true HR = exp(-2 * ((0.1-0.5)^2 - (0.5-0.5)^2)) = exp(-0.32) or exp(+0.32) depending on contrast direction
-            {"variable": 2, "name": "x2", "type": "contrast", "values": [0.10, 0.50], "true_hr": float(np.exp(2.0 * 0.16))},
-            # x4 has linear main effect (beta=0.25): continuous shift delta=+0.20, true HR = exp(-2 * 0.25 * 0.20) = exp(-0.10)
-            {"variable": 4, "name": "x4", "type": "continuous_shift", "delta": 0.20, "true_hr": float(np.exp(-2.0 * 0.25 * 0.20))},
+            {"variable": 0, "name": "x0", "type": "binary", "values": [0, 1]},
+            {"variable": 1, "name": "x1", "type": "binary", "values": [0, 1]},
+            {"variable": 3, "name": "x3", "type": "continuous_shift", "delta": 0.20},
         ],
     },
 }

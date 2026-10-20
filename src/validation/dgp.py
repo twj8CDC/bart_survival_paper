@@ -59,11 +59,14 @@ def assign_quant_events(
 def generate_scenario_data(
     scenario_cfg: Dict[str, Any],
     n: int,
-    seed: int
+    seed: int,
+    eval_times: Optional[np.ndarray] = None
 ) -> Dict[str, Any]:
     """
     Generates synthetic survival cohort, analytically derived true survival,
     and discretized event indicators faithful to manuscript scenario specifications.
+    If eval_times is provided, uses this exact evaluation grid (ensures perfect alignment
+    between training and holdout test cohorts).
     """
     rng = np.random.default_rng(seed)
     
@@ -100,7 +103,11 @@ def generate_scenario_data(
     # 3. Discretization
     category = scenario_cfg.get("category", "simple")
     
-    if "quantiles" in scenario_cfg:
+    if eval_times is not None:
+        # Pre-specified evaluation grid (e.g. for test cohort aligned to train cohort)
+        eval_times = np.sort(np.unique(np.asarray(eval_times, dtype=int)))
+        disc_events = assign_quant_events(event_dict, eval_times)
+    elif "quantiles" in scenario_cfg:
         # Simple & Complex 1/2: Quantiles on mean survival
         sv_mean = sv_true_mat.mean(axis=0)
         qnt_times = get_quant_times_from_survival(sv_mean, true_times, scenario_cfg["quantiles"])

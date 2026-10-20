@@ -151,7 +151,12 @@ def run_experiment():
             train_data = generate_scenario_data(scen_cfg, n=SAMPLE_SIZE, seed=seed)
             test_data = None
             if "test_sample_size" in scen_cfg:
-                test_data = generate_scenario_data(scen_cfg, n=scen_cfg["test_sample_size"], seed=seed + 10000)
+                test_data = generate_scenario_data(
+                    scen_cfg,
+                    n=scen_cfg["test_sample_size"],
+                    seed=seed + 10000,
+                    eval_times=train_data["eval_times"]
+                )
             true_sv = train_data["sv_true_eval"]
             
             # 1. Run r-BART baseline for this replicate

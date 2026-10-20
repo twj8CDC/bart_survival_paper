@@ -78,7 +78,12 @@ def run_single_scenario(
         test_data = None
         if "test_sample_size" in scenario_cfg:
             test_n = scenario_cfg["test_sample_size"]
-            test_data = generate_scenario_data(scenario_cfg, n=test_n, seed=current_seed + 10000)
+            test_data = generate_scenario_data(
+                scenario_cfg,
+                n=test_n,
+                seed=current_seed + 10000,
+                eval_times=train_data["eval_times"]
+            )
             
         true_sv_train = train_data["sv_true_eval"]
         

@@ -1,0 +1,63 @@
+{
+  "scenario_id": "simple_2_2",
+  "scenario_name": "Simple 2-Sample (50% Censoring)",
+  "category": "simple",
+  "n": 400,
+  "preset": "production",
+  "scenario_config": {
+    "name": "Simple 2-Sample (50% Censoring)",
+    "category": "simple",
+    "type": "Simple, 2 group, 50% cens",
+    "x_vars": 1,
+    "VAR_CLASS": [
+      2
+    ],
+    "VAR_PROB": [
+      0.5
+    ],
+    "scale_f": "12 - .5 *x_mat[:,0]",
+    "shape_f": "1.2 + 1 *x_mat[:,0]",
+    "cens_scale": 1.1,
+    "eos": 180,
+    "quantiles": [
+      0.9,
+      0.75,
+      0.5,
+      0.25,
+      0.1
+    ],
+    "default_sample_sizes": [
+      200,
+      400
+    ],
+    "causal_contrasts": [
+      {
+        "variable": 0,
+        "name": "x0",
+        "type": "binary",
+        "values": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "model_config": {
+    "trees": 50,
+    "draws": 2500,
+    "tune": 1000,
+    "chains": 4,
+    "thin": 10,
+    "thin_idata": false,
+    "update_fraction": 1.0,
+    "use_sparsity": false,
+    "split_method": "empirical",
+    "max_cutpoints": 512,
+    "min_node_size": 5,
+    "k": 2.0
+  },
+  "start_time": "2026-10-18T15:51:46.099726",
+  "status": "COMPLETED",
+  "completion_time": "2026-10-18T15:55:44.317529",
+  "duration_seconds": 996.3857691287994
+}
