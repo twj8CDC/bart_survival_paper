@@ -132,8 +132,8 @@ def recreate_fig2_complex12(og_data, new_data=None):
         has_new = (new_data and f"{scen_key}_pbart_rmse" in new_data and len(new_data[f"{scen_key}_pbart_rmse"]) > 0)
         if has_new:
             # Sliced to match [:, 1:-1]
-            rmse_new_p = new_data[f"{scen_key}_pbart_rmse"][:, 1:-1]
-            bias_new_p = new_data[f"{scen_key}_pbart_bias"][:, 1:-1]
+            rmse_new_p = new_data[f"{scen_key}_pbart_rmse"][:, 1:-1] # type: ignore
+            bias_new_p = new_data[f"{scen_key}_pbart_bias"][:, 1:-1] # type: ignore
         
         # -------------------- PANEL 1: RMSE --------------------
         ax = axes[0]
@@ -280,7 +280,7 @@ def recreate_fig3_complex3(og_df_n400, new_data=None):
         # p-BART New
         if has_new:
             col_idx = decile_indices[d_val]
-            new_vals = new_data["complex_3_pbart_test_rmse"][:, col_idx]
+            new_vals = new_data["complex_3_pbart_test_rmse"][:, col_idx] # type: ignore
             ax.boxplot(
                 new_vals, positions=[pos_base + offsets[0]], widths=widths, patch_artist=True,
                 boxprops={"facecolor": "#111111", "alpha": 1.0},
@@ -341,7 +341,7 @@ def recreate_fig3_complex3(og_df_n400, new_data=None):
         
         if has_new:
             col_idx = decile_indices[d_val]
-            new_vals = new_data["complex_3_pbart_test_bias"][:, col_idx]
+            new_vals = new_data["complex_3_pbart_test_bias"][:, col_idx] # type: ignore
             ax.boxplot(
                 new_vals, positions=[pos_base + offsets[0]], widths=widths, patch_artist=True,
                 boxprops={"facecolor": "#111111", "alpha": 1.0},
